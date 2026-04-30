@@ -1,2 +1,24 @@
 env-contract-spec.md
 npm-package-launch-playbook.md
+
+# Node.js
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.npm/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build tools
+.turbo/
+.tsup/
+.vitest/

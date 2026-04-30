@@ -1,0 +1,52 @@
+{
+  "name": "env-contract",
+  "version": "0.1.0",
+  "description": "Keep your env schema, .env.example, and process.env references honest with each other.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "env-contract": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cac": "^6.7.14",
+    "jiti": "^2.1.0",
+    "oxc-parser": "^0.31.0",
+    "picocolors": "^1.0.0"
+  },
+  "peerDependencies": {
+    "zod": "^3.0.0 || ^4.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.5"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
