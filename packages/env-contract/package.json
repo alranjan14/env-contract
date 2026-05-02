@@ -2,6 +2,23 @@
   "name": "env-contract",
   "version": "0.1.0",
   "description": "Keep your env schema, .env.example, and process.env references honest with each other.",
+  "keywords": [
+    "env",
+    "dotenv",
+    "zod",
+    "t3-env",
+    "validation",
+    "typescript"
+  ],
+  "homepage": "https://github.com/alranjan14/env-contract#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alranjan14/env-contract.git"
+  },
+  "bugs": "https://github.com/alranjan14/env-contract/issues",
+  "author": "alranjan14",
+  "license": "MIT",
+  "sideEffects": false,
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -14,7 +31,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -30,7 +48,8 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run test"
   },
   "dependencies": {
     "cac": "^6.7.14",
@@ -40,6 +59,11 @@
   },
   "peerDependencies": {
     "zod": "^3.0.0 || ^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": false
+    }
   },
   "devDependencies": {
     "tsup": "^8.0.2",

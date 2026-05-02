@@ -23,8 +23,12 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Update npm to a version that supports OIDC
+        run: npm install -g npm@latest
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+      - run: pnpm run test
 
       - name: Create release PR or publish
         uses: changesets/action@v1
