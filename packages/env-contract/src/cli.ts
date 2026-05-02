@@ -9,9 +9,10 @@ cli
   .command("sync", "Generate or update .env.example from the schema")
   .option("--yes", "Non-interactive mode")
   .option("--check", "Exit non-zero if would change anything")
-  .action((options) => {
-    console.log(pc.cyan("Syncing environment variables..."));
-    // TODO: Implement sync logic
+  .action(async (options) => {
+    const { runSync } = await import("./commands/sync.js");
+    const code = await runSync(options);
+    if (code !== 0) process.exit(code);
   });
 
 cli

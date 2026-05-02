@@ -31,14 +31,14 @@ Ensure the package meets the strict standards defined in the launch playbook bef
 
 Implement the logic to generate `.env.example` while preserving user comments outside the managed block.
 
-- [ ] **Implement `src/utils/managed-block.ts`**
+- [x] **Implement `src/utils/managed-block.ts`**
   - **Context:** We cannot overwrite `.env.example` entirely because users might have local secrets comments. We must use `>>> env-contract:start` and `<<< env-contract:end` markers.
   - **Tasks:**
     - Export `injectIntoContent(existingContent: string, newManagedContent: string): string`.
     - If markers exist, replace the content between them.
     - If markers don't exist, append the markers and new content at the bottom of the file.
 
-- [ ] **Implement `src/core/generate-example.ts`**
+- [x] **Implement `src/core/generate-example.ts`**
   - **Context:** Converts the parsed `Schema` (from Phase 0) into the raw string that goes inside the managed block.
   - **Tasks:**
     - Iterate over `schema.entries`.
@@ -46,7 +46,7 @@ Implement the logic to generate `.env.example` while preserving user comments ou
     - Format output: Add `# <description>` if present. Add `# Optional:` if optional. Add `# (default: X)` if default exists.
     - E.g.: `DATABASE_URL=` (never output real default values).
 
-- [ ] **Implement `src/commands/sync.ts` & update `cli.ts`**
+- [x] **Implement `src/commands/sync.ts` & update `cli.ts`**
   - **Context:** The user-facing command that glues the schema loader, generator, and managed block together.
   - **Tasks:**
     - Load schema -> Generate content -> Read `.env.example` -> Inject -> Write to file.

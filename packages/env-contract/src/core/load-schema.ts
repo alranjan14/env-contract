@@ -15,7 +15,7 @@ export async function loadSchema(schemaPath: string, cwd: string = process.cwd()
   });
 
   try {
-    const mod = await jiti.import(absolutePath);
+    const mod = await jiti.import(absolutePath) as any;
     
     // 1. Try to find an explicit loader match in any export
     for (const key of Object.keys(mod)) {
