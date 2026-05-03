@@ -59,7 +59,7 @@ Implement the logic to generate `.env.example` while preserving user comments ou
 
 Find where environment variables are actually used in the codebase.
 
-- [ ] **Implement `src/core/scan-source.ts`**
+- [x] **Implement `src/core/scan-source.ts`**
   - **Context:** We need to find references to `process.env.XXX` and `import.meta.env.XXX` to detect orphaned references.
   - **Tasks:**
     - Install and use `oxc-parser` to parse TS/JS/TSX/JSX files in the user's `src/` directory.
