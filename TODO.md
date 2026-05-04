@@ -73,7 +73,7 @@ Find where environment variables are actually used in the codebase.
 
 The logic that drives the CI failures and the `scan` command output.
 
-- [ ] **Implement `src/core/diff.ts`**
+- [x] **Implement `src/core/diff.ts`**
   - **Context:** Compares the three pillars: Schema, `.env.example`, and AST Scanner results.
   - **Tasks:**
     - Input: `Schema`, Example file keys, Scanner references.
@@ -82,7 +82,7 @@ The logic that drives the CI failures and the `scan` command output.
       - `orphanedRefs`: Scanned references that don't exist in the `Schema`.
       - `unusedSchemaKeys` (strict mode): Keys in `Schema` not found by the scanner.
 
-- [ ] **Implement `src/commands/scan.ts` & update `cli.ts`**
+- [x] **Implement `src/commands/scan.ts` & update `cli.ts`**
   - **Context:** Expose the scanner and differ to the user.
   - **Tasks:**
     - Run the AST scanner.
@@ -90,7 +90,7 @@ The logic that drives the CI failures and the `scan` command output.
     - Print beautifully formatted output (using `picocolors`) listing orphaned references with their file paths/lines.
     - Support `--strict` flag.
 
-- [ ] **Implement `src/commands/check.ts` & update `cli.ts`**
+- [x] **Implement `src/commands/check.ts` & update `cli.ts`**
   - **Context:** The CI-friendly composite command.
   - **Tasks:**
     - Run `sync` in `--check` mode (don't write, just detect diffs).

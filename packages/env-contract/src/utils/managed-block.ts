@@ -20,3 +20,14 @@ export function injectIntoContent(existingContent: string, newManagedContent: st
   const needsNewline = existingContent.length > 0 && !existingContent.endsWith("\n");
   return existingContent + (needsNewline ? "\n\n" : "\n") + block + "\n";
 }
+
+export function extractManagedContent(content: string): string | null {
+  const startIdx = content.indexOf(START_MARKER);
+  const endIdx = content.indexOf(END_MARKER);
+
+  if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) {
+    return null;
+  }
+
+  return content.substring(startIdx + START_MARKER.length, endIdx).trim();
+}
