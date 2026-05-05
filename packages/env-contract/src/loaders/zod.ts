@@ -19,7 +19,7 @@ function introspectZodType(key: string, type: z.ZodTypeAny, scope: "server" | "c
 
   // Walk the wrapper chain
   while (current) {
-    const def = current._def || (current as any).def;
+    const def = (current as any)._def || (current as any).def;
     if (!def) break;
 
     const typeName = def.typeName || def.type;
@@ -70,15 +70,15 @@ function introspectZodType(key: string, type: z.ZodTypeAny, scope: "server" | "c
     key,
     type: getFriendlyTypeName(current),
     optional,
-    default: defaultValue,
-    description,
     scope,
+    ...(defaultValue !== undefined ? { default: defaultValue } : {}),
+    ...(description !== undefined ? { description } : {}),
   };
 }
 
 function getFriendlyTypeName(type: z.ZodTypeAny): string {
   if (!type) return "unknown";
-  const def = type._def || (type as any).def;
+  const def = (type as any)._def || (type as any).def;
   if (!def) return "unknown";
   
   const typeName = def.typeName || def.type;

@@ -1,6 +1,7 @@
 export interface Config {
   schema?: string;
   exampleFile?: string;
+  rootDir?: string;
   scan?: {
     include?: string[];
     exclude?: string[];

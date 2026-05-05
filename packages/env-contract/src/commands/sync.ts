@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import pc from "picocolors";
-import path from "node:path";
 import { loadSchema } from "../core/load-schema.js";
 import { generateExample } from "../core/generate-example.js";
 import { injectIntoContent } from "../utils/managed-block.js";

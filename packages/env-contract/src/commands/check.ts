@@ -12,7 +12,10 @@ export async function runCheck(options: { json?: boolean }, config: Config = {})
   const syncCode = await runSync({ check: true }, config);
   
   // 2. Check scan drift
-  const scanCode = await runScan({ strict: true, json: options.json }, config);
+  const scanCode = await runScan({ 
+    strict: true, 
+    ...(options.json !== undefined ? { json: options.json } : {})
+  }, config);
 
   if (options.json) {
     // The JSON was already printed by runScan

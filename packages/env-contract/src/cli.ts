@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { cac } from "cac";
-import pc from "picocolors";
 import { version } from "./index.js";
 
 const cli = cac("env-contract");

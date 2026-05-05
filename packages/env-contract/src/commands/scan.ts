@@ -17,7 +17,9 @@ export async function runScan(options: { strict?: boolean; json?: boolean }, con
       scanSource(rootDir),
     ]);
 
-    const result = diff(schema, [], report.references, { strict: options.strict });
+    const result = diff(schema, [], report.references, {
+      ...(options.strict !== undefined ? { strict: options.strict } : {})
+    });
 
     if (options.json) {
       console.log(JSON.stringify(result, null, 2));

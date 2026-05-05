@@ -59,17 +59,6 @@ async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
       if (code[i] === "\n") lineStarts.push(i + 1);
     }
 
-    function getPosition(offset: number) {
-      let line = 1;
-      let col = offset;
-      for (let i = 0; i < lineStarts.length; i++) {
-        if (offset < lineStarts[i]) break;
-        line = i + 1;
-        col = offset - lineStarts[i];
-      }
-      return { line, column: col + 1 };
-    }
-
     const relPath = path.relative(rootDir, filePath);
 
     walkAst(program, (node: any) => {
@@ -79,7 +68,7 @@ async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
       if (node.type === "StaticMemberExpression") {
         const obj = node.object;
         if (isProcessEnv(obj)) {
-          const { line, column } = getPosition(node.start);
+          const { line, column } = getPosition(node.start, lineStarts);
           report.references.push({
             key: node.property.name,
             file: relPath,
@@ -91,7 +80,7 @@ async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
         }
 
         if (isImportMetaEnv(obj)) {
-          const { line, column } = getPosition(node.start);
+          const { line, column } = getPosition(node.start, lineStarts);
           report.references.push({
             key: node.property.name,
             file: relPath,
@@ -107,7 +96,7 @@ async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
       if (node.type === "ComputedMemberExpression") {
         const obj = node.object;
         if (isProcessEnv(obj) || isImportMetaEnv(obj)) {
-          const { line, column } = getPosition(node.start);
+          const { line, column } = getPosition(node.start, lineStarts);
           
           if (node.expression.type === "StringLiteral") {
             report.references.push({
@@ -133,7 +122,7 @@ async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
       if (node.type === "VariableDeclarator") {
         if (node.init && (isProcessEnv(node.init) || isImportMetaEnv(node.init))) {
           if (node.id.type === "ObjectPattern") {
-            const { line, column } = getPosition(node.start);
+            const { line, column } = getPosition(node.start, lineStarts);
             for (const prop of node.id.properties) {
               if (prop.type === "BindingProperty" && prop.key.type === "Identifier") {
                 report.references.push({
@@ -156,6 +145,18 @@ async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
 }
 
 // Helpers
+function getPosition(offset: number, lineStarts: number[]) {
+  let line = 1;
+  let col = offset;
+  for (let i = 0; i < lineStarts.length; i++) {
+    const start = lineStarts[i]!;
+    if (offset < start) break;
+    line = i + 1;
+    col = offset - start;
+  }
+  return { line, column: col + 1 };
+}
+
 function isProcessEnv(node: any): boolean {
   if (!node || node.type !== "StaticMemberExpression") return false;
   return (
