@@ -102,7 +102,7 @@ The logic that drives the CI failures and the `scan` command output.
 
 ## Phase 5: Testing & Polish
 
-- [ ] **Unit Tests**
+- [x] **Unit Tests**
   - Create fixtures and write `vitest` unit tests for `managed-block.ts`, `generate-example.ts`, and `diff.ts`.
-- [ ] **E2E Tests**
+- [x] **E2E Tests**
   - Test the CLI binary against a dummy project to ensure exit codes are correctly respected.
