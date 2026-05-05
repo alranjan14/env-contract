@@ -18,6 +18,7 @@ cli
 cli
   .command("scan", "Walk source tree and report process.env references")
   .option("--strict", "Also flag schema entries unused in code")
+  .option("--json", "Machine-readable output")
   .action(async (options) => {
     const { runScan } = await import("./commands/scan.js");
     const code = await runScan(options);
@@ -26,6 +27,7 @@ cli
 
 cli
   .command("check", "CI-friendly composite command (sync --check + scan)")
+  .option("--json", "Machine-readable output")
   .action(async (options) => {
     const { runCheck } = await import("./commands/check.js");
     const code = await runCheck(options);
