@@ -44,6 +44,37 @@ describe("diff logic", () => {
     expect(report.unusedSchemaKeys).toContain("KEY_B");
   });
 
+  it("should filter out ignoreKeys from all reports", () => {
+    const refs = [
+      { key: "KEY_A", file: "a.ts", line: 1, column: 1, kind: "process.env" as const },
+      { key: "NODE_ENV", file: "b.ts", line: 2, column: 1, kind: "process.env" as const },
+      { key: "CI", file: "c.ts", line: 3, column: 1, kind: "process.env" as const },
+    ];
+    // schema has KEY_A, KEY_B
+    // example has KEY_A, NODE_ENV
+    // refs has KEY_A, NODE_ENV, CI
+    // ignoreKeys = ["NODE_ENV", "CI", "KEY_B"]
+    const report = diff(schema, ["KEY_A", "NODE_ENV"], refs, {
+      strict: true,
+      ignoreKeys: ["NODE_ENV", "CI", "KEY_B"],
+    });
+
+    // Example drift:
+    // KEY_B is missing from example, but it's ignored
+    expect(report.exampleDrift.missingInExample).not.toContain("KEY_B");
+    // NODE_ENV is extra in example, but it's ignored
+    expect(report.exampleDrift.extraInExample).not.toContain("NODE_ENV");
+
+    // Orphaned refs:
+    // NODE_ENV and CI are not in schema, but they are ignored
+    expect(report.orphanedRefs.map(r => r.key)).not.toContain("NODE_ENV");
+    expect(report.orphanedRefs.map(r => r.key)).not.toContain("CI");
+
+    // Unused schema keys:
+    // KEY_B is in schema but not referenced, but it's ignored
+    expect(report.unusedSchemaKeys).not.toContain("KEY_B");
+  });
+
   it("should parse env keys from string", () => {
     const content = `
 # Comment

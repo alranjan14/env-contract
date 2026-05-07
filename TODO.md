@@ -8,13 +8,13 @@ This document details the implementation plan for the **v0.2 Polish** features a
 
 Some environment variables (like `NODE_ENV`, `CI`, `VERCEL`) are standard and shouldn't trigger drift warnings if they are missing from the schema or unreferenced in the codebase.
 
-- [ ] **Update `Config` Interface**
+- [x] **Update `Config` Interface**
   - **Context:** Modify `packages/env-contract/src/config.ts`.
   - **Tasks:** Add `ignoreKeys?: string[]` to the `Config` interface.
-- [ ] **Implement Filtering in Differ**
+- [x] **Implement Filtering in Differ**
   - **Context:** Modify `packages/env-contract/src/core/diff.ts`.
   - **Tasks:** Before calculating `orphanedRefs` and `unusedSchemaKeys`, filter out any keys that exist in the `ignoreKeys` array.
-- [ ] **Add Unit Tests**
+- [x] **Add Unit Tests**
   - **Context:** Update `packages/env-contract/tests/diff.test.ts`.
   - **Tasks:** Add a test case verifying that ignored keys are successfully omitted from the drift reports.
 

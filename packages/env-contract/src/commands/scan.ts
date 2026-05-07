@@ -18,7 +18,8 @@ export async function runScan(options: { strict?: boolean; json?: boolean }, con
     ]);
 
     const result = diff(schema, [], report.references, {
-      ...(options.strict !== undefined ? { strict: options.strict } : {})
+      ...(options.strict !== undefined ? { strict: options.strict } : {}),
+      ignoreKeys: config.ignoreKeys,
     });
 
     if (options.json) {
