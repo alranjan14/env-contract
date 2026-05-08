@@ -33,6 +33,16 @@ cli
     if (code !== 0) process.exit(code);
   });
 
+cli
+  .command("install", "Idempotent setup helper for git hooks and CI")
+  .option("--hook <name>", "Git hook to install to (default: pre-commit)")
+  .option("--yes", "Non-interactive mode")
+  .action(async (options) => {
+    const { runInstall } = await import("./commands/install.js");
+    const code = await runInstall(options);
+    if (code !== 0) process.exit(code);
+  });
+
 cli.help();
 cli.version(version);
 

@@ -24,7 +24,7 @@ Some environment variables (like `NODE_ENV`, `CI`, `VERCEL`) are standard and sh
 
 Provide an idempotent setup helper that configures git hooks and suggests CI workflows, making adoption frictionless.
 
-- [ ] **Create `src/commands/install.ts`**
+- [x] **Create `src/commands/install.ts`**
   - **Context:** New command handler.
   - **Tasks:**
     - Detect the presence of popular git hook runners by inspecting `package.json` (`husky`, `simple-git-hooks`, `lefthook`).
@@ -32,7 +32,7 @@ Provide an idempotent setup helper that configures git hooks and suggests CI wor
     - If `simple-git-hooks` is found, append to the `simple-git-hooks.pre-commit` field in `package.json`.
     - If no hook runner is found, suggest installing one (e.g., husky).
     - Print a beautifully formatted (via `picocolors`) copy-pasteable GitHub Actions snippet.
-- [ ] **Wire up CLI**
+- [x] **Wire up CLI**
   - **Context:** Modify `packages/env-contract/src/cli.ts`.
   - **Tasks:** Add the `install` command with an optional `--hook <name>` flag (defaulting to `pre-commit`).
 
