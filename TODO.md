@@ -42,13 +42,13 @@ Provide an idempotent setup helper that configures git hooks and suggests CI wor
 
 Allow users to keep their `.env.example` continuously in sync while they are actively developing and modifying their schema.
 
-- [ ] **Implement File Watcher**
+- [x] **Implement File Watcher**
   - **Context:** Modify `packages/env-contract/src/commands/sync.ts`.
   - **Tasks:** 
     - If `--watch` is true, use `node:fs` `watch` (or a lightweight watcher) to monitor the schema file (`src/env.ts`).
     - On change, clear the `jiti` cache for that file and re-run the sync logic.
     - Print a message indicating it is watching for changes.
-- [ ] **Wire up CLI**
+- [x] **Wire up CLI**
   - **Context:** Modify `packages/env-contract/src/cli.ts`.
   - **Tasks:** Add `.option("--watch", "Watch schema for changes")` to the `sync` command.
 

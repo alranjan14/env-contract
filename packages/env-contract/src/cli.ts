@@ -8,6 +8,7 @@ cli
   .command("sync", "Generate or update .env.example from the schema")
   .option("--yes", "Non-interactive mode")
   .option("--check", "Exit non-zero if would change anything")
+  .option("--watch", "Watch schema for changes")
   .action(async (options) => {
     const { runSync } = await import("./commands/sync.js");
     const code = await runSync(options);
