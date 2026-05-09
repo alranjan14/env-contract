@@ -28,5 +28,6 @@ export async function runCheck(options: { json?: boolean }, config: Config = {})
   }
 
   console.error(pc.red("\n✖ Environment contract check failed."));
+  console.error(pc.yellow("👉 Suggestion: Fix this by running 'npx env-contract sync' locally and committing the result."));
   return 1;
 }

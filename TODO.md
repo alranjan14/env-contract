@@ -1,79 +1,59 @@
-# env-contract v0.2 & Launch TODO
+# env-contract — Architectural Roadmap & TODOs
 
-This document details the implementation plan for the **v0.2 Polish** features and the **Launch Strategy**, as defined in the `env-contract-spec.md` and `npm-package-launch-playbook.md`.
+As an npm package architect, I have reviewed the current implementation against the `env-contract-spec.md` and `npm-package-launch-playbook.md`.
 
----
+The v0.1.0 MVP and v0.2.0 Polish phases are fully implemented. The foundation is exceptionally solid: we rely on a minimal set of dependencies (`cac`, `jiti`, `picocolors`, `oxc-parser`), ship dual ESM/CJS formats via `tsup`, and correctly export the CLI bin.
 
-## Phase 1: Configurable `ignoreKeys`
-
-Some environment variables (like `NODE_ENV`, `CI`, `VERCEL`) are standard and shouldn't trigger drift warnings if they are missing from the schema or unreferenced in the codebase.
-
-- [x] **Update `Config` Interface**
-  - **Context:** Modify `packages/env-contract/src/config.ts`.
-  - **Tasks:** Add `ignoreKeys?: string[]` to the `Config` interface.
-- [x] **Implement Filtering in Differ**
-  - **Context:** Modify `packages/env-contract/src/core/diff.ts`.
-  - **Tasks:** Before calculating `orphanedRefs` and `unusedSchemaKeys`, filter out any keys that exist in the `ignoreKeys` array.
-- [x] **Add Unit Tests**
-  - **Context:** Update `packages/env-contract/tests/diff.test.ts`.
-  - **Tasks:** Add a test case verifying that ignored keys are successfully omitted from the drift reports.
+To ensure the package remains **lightweight** and **architecturally sound** as we scale to v1.0, here are the detailed architectural findings and the remaining tasks to be implemented.
 
 ---
 
-## Phase 2: The `install` Command
+## 1. Core Architecture: Standard Schema Support
 
-Provide an idempotent setup helper that configures git hooks and suggests CI workflows, making adoption frictionless.
+Currently, `src/loaders/` is hardcoded to support Zod and `@t3-oss/env-core`. As the JavaScript ecosystem moves toward unifying validation interfaces, tying ourselves specifically to Zod internal APIs (like `._def`) creates technical debt.
 
-- [x] **Create `src/commands/install.ts`**
-  - **Context:** New command handler.
-  - **Tasks:**
-    - Detect the presence of popular git hook runners by inspecting `package.json` (`husky`, `simple-git-hooks`, `lefthook`).
-    - If `husky` is found, suggest/create the `npx env-contract check` command inside `.husky/pre-commit` (or the hook specified by `--hook`).
-    - If `simple-git-hooks` is found, append to the `simple-git-hooks.pre-commit` field in `package.json`.
-    - If no hook runner is found, suggest installing one (e.g., husky).
-    - Print a beautifully formatted (via `picocolors`) copy-pasteable GitHub Actions snippet.
-- [x] **Wire up CLI**
-  - **Context:** Modify `packages/env-contract/src/cli.ts`.
-  - **Tasks:** Add the `install` command with an optional `--hook <name>` flag (defaulting to `pre-commit`).
+- [ ] **Implement `Standard Schema` Loader**
+  - **Context:** The `standard-schema` package provides a universal specification for validation libraries.
+  - **Task:** Create `src/loaders/standard-schema.ts`.
+  - **Goal:** Allow `env-contract` to automatically support Valibot, ArkType, and any future validator that implements the `~standard` interface, without bloating our dependencies.
+- [ ] **Decouple Zod Loader Fallbacks**
+  - **Context:** Currently, we rely on matching Zod's internal AST.
+  - **Task:** Retain the Zod loader for backwards compatibility, but prioritize `standard-schema` detection in `load-schema.ts`.
 
----
+## 2. Programmatic API Surface Area
 
-## Phase 3: Watch Mode (`sync --watch`)
+To be a truly "architecturally good" npm package, `env-contract` must be composable. Tooling authors (like Vite plugin creators) will want to import our core engine.
 
-Allow users to keep their `.env.example` continuously in sync while they are actively developing and modifying their schema.
+- [ ] **Export Core Engine Functions**
+  - **Context:** `src/index.ts` currently only exports `config.ts`, `load-schema.ts`, and types.
+  - **Task:** Export `diff` from `src/core/diff.ts`, `generateExample` from `src/core/generate-example.ts`, and `scanSource` from `src/core/scan-source.ts`.
+  - **Goal:** Enable developers to build `eslint-plugin-env-contract` or `vite-plugin-env-contract` using our primitives.
 
-- [x] **Implement File Watcher**
-  - **Context:** Modify `packages/env-contract/src/commands/sync.ts`.
-  - **Tasks:** 
-    - If `--watch` is true, use `node:fs` `watch` (or a lightweight watcher) to monitor the schema file (`src/env.ts`).
-    - On change, clear the `jiti` cache for that file and re-run the sync logic.
-    - Print a message indicating it is watching for changes.
-- [x] **Wire up CLI**
-  - **Context:** Modify `packages/env-contract/src/cli.ts`.
-  - **Tasks:** Add `.option("--watch", "Watch schema for changes")` to the `sync` command.
+## 3. Performance & Stability Enhancements
 
----
+While `oxc-parser` is incredibly fast, it carries a native binary footprint. For our AST scanner and watch modes to be robust, we need to address edge cases.
 
-## Phase 4: Better Error Messages
+- [ ] **Debounce Watch Mode Events**
+  - **Context:** `fs.watch` in `src/commands/sync.ts` triggers immediately on every save.
+  - **Task:** Implement a 200ms debounce using a simple `setTimeout` mechanism to prevent duplicate sync executions when editors rapidly trigger multiple OS file-system events.
+- [ ] **Template Literal Scanning**
+  - **Context:** The current AST scanner in `src/core/scan-source.ts` relies strictly on MemberExpressions (`process.env.FOO`).
+  - **Task:** Extend the visitor in `scan-source.ts` to detect `process.env` accesses embedded within Template Literals (e.g., \`\${process.env.API_URL}/users\`).
 
-Improve Developer Experience (DX) by making error messages actionable.
+## 4. Scalability: Workspace / Monorepo Mode (v0.4)
 
-- [ ] **Improve `scan` and `check` outputs**
-  - **Tasks:** 
-    - When `check` fails due to drift, append a clear suggestion: `👉 Fix this by running 'npx env-contract sync' locally.`
-    - If the schema loader fails (e.g., TS error), intercept the error and suggest checking the schema path or looking for syntax errors in the schema file.
+Modern TS packages live in monorepos. Running `env-contract` individually in 20 packages is friction.
 
----
+- [ ] **Implement `--workspace` Flag**
+  - **Context:** Add workspace detection to the CLI.
+  - **Task:** Use `fs.readdir` (recursively, avoiding `node_modules` to stay dependency-free) to find all `env.ts` or `env-contract.config.ts` files across the monorepo.
+  - **Goal:** Aggregate all drift reports into a single, comprehensive CI output.
 
-## Phase 5: Launch & Distribution (Playbook)
+## 5. Launch & Distribution
 
-Once v0.1 is published, execute the marketing playbook.
+The codebase is ready. We must execute the playbook to gain traction.
 
-- [ ] **Publish v0.1.0**
-  - **Tasks:** Run `pnpm changeset`, commit, and merge the Version Packages PR to trigger the OIDC publish workflow.
+- [ ] **Publish v0.1.0 via Changesets**
+  - **Task:** Run `pnpm changeset`, commit, and trigger the GitHub Action OIDC publishing workflow.
 - [ ] **Community Outreach**
-  - **Tasks:**
-    - Create a Show HN post.
-    - Open a respectful GitHub Discussion on the `t3-oss/t3-env` repository.
-    - Post on `r/typescript` and `r/nextjs` focusing on the problem solved.
-    - Submit the package to the `e18e.dev` ecosystem list.
+  - **Task:** Execute the marketing playbook. Post to r/typescript, r/nextjs, e18e.dev, and open a discussion on the `t3-oss/t3-env` repository.

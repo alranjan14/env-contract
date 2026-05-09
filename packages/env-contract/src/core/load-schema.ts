@@ -41,6 +41,9 @@ export async function loadSchema(schemaPath: string, cwd: string = process.cwd()
     if (error.code === "MODULE_NOT_FOUND") {
       throw new Error(`Schema file not found at ${absolutePath}`);
     }
+    if (error.message && !error.message.includes("Could not find a valid")) {
+      throw new Error(`Failed to load schema from ${schemaPath}.\n👉 Suggestion: Check the file for syntax or TypeScript errors.\n\nUnderlying error:\n${error.message}`);
+    }
     throw error;
   }
 }
