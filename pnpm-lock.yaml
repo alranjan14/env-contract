@@ -60,6 +60,9 @@ importers:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
+      valibot:
+        specifier: ^1.4.0
+        version: 1.4.0(typescript@5.9.3)
 
 packages:
 
@@ -1641,6 +1644,14 @@ packages:
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
+
+  valibot@1.4.0:
+    resolution: {integrity: sha512-iC/x7fVcSyOwlm/VSt7RlHnzNGLGvR9GnxdifUeWoCJo0q4ZZvrVkIHC6faTlkxG47I2Y4UrFquPuVHCrOnrLg==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   vite-node@1.6.1:
     resolution: {integrity: sha512-YAXkfvGtuTzwWbDSACdJSg4A4DZiAqckWe90Zapc/sEX3XvHcw1NdurM/6od8J207tSDqNbSsgdCacBgvJKFuA==}
@@ -3232,6 +3243,10 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  valibot@1.4.0(typescript@5.9.3):
+    optionalDependencies:
+      typescript: 5.9.3
 
   vite-node@1.6.1(@types/node@20.19.39):
     dependencies:

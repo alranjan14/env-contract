@@ -8,17 +8,17 @@ To ensure the package remains **lightweight** and **architecturally sound** as w
 
 ---
 
-## 1. Core Architecture: Standard Schema Support
+## 1. Core Architecture: Validation Loaders
 
-Currently, `src/loaders/` is hardcoded to support Zod and `@t3-oss/env-core`. As the JavaScript ecosystem moves toward unifying validation interfaces, tying ourselves specifically to Zod internal APIs (like `._def`) creates technical debt.
+Currently, `src/loaders/` supports Zod and `@t3-oss/env-core`. While the `standard-schema` interface standardizes validation, it does not standardize schema introspection (extracting keys, descriptions, defaults). Therefore, we must build dedicated loaders for the major validation libraries to remain unopinionated.
 
-- [ ] **Implement `Standard Schema` Loader**
-  - **Context:** The `standard-schema` package provides a universal specification for validation libraries.
-  - **Task:** Create `src/loaders/standard-schema.ts`.
-  - **Goal:** Allow `env-contract` to automatically support Valibot, ArkType, and any future validator that implements the `~standard` interface, without bloating our dependencies.
-- [ ] **Decouple Zod Loader Fallbacks**
-  - **Context:** Currently, we rely on matching Zod's internal AST.
-  - **Task:** Retain the Zod loader for backwards compatibility, but prioritize `standard-schema` detection in `load-schema.ts`.
+- [x] **Implement `Valibot` Loader**
+  - **Context:** Valibot is a highly requested, lightweight alternative to Zod.
+  - **Task:** Create `src/loaders/valibot.ts` and refactor `load-schema.ts` to use a registered array of loaders.
+  - **Goal:** Allow `env-contract` to automatically support Valibot out of the box.
+- [ ] **Implement `ArkType` Loader**
+  - **Context:** ArkType is gaining popularity for its string-based schema definitions.
+  - **Task:** Create `src/loaders/arktype.ts` and add it to the loader registry.
 
 ## 2. Programmatic API Surface Area
 

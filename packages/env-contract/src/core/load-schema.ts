@@ -2,7 +2,10 @@ import { createJiti } from "jiti";
 import path from "node:path";
 import { t3EnvLoader } from "../loaders/t3-env.js";
 import { zodLoader } from "../loaders/zod.js";
+import { valibotLoader } from "../loaders/valibot.js";
 import type { Schema } from "../loaders/types.js";
+
+const registeredLoaders = [t3EnvLoader, zodLoader, valibotLoader];
 
 export async function loadSchema(schemaPath: string, cwd: string = process.cwd()): Promise<Schema> {
   const absolutePath = path.isAbsolute(schemaPath) 
@@ -20,23 +23,23 @@ export async function loadSchema(schemaPath: string, cwd: string = process.cwd()
     // 1. Try to find an explicit loader match in any export
     for (const key of Object.keys(mod)) {
       const exported = mod[key];
-      
-      if (t3EnvLoader.matches(exported)) {
-        return t3EnvLoader.introspect(exported);
-      }
-      
-      if (zodLoader.matches(exported)) {
-        return zodLoader.introspect(exported);
+      for (const loader of registeredLoaders) {
+        if (loader.matches(exported)) {
+          return loader.introspect(exported);
+        }
       }
     }
 
     // 2. Fallback: search for common naming conventions if no structural match found
     if (mod.env) {
-       // mod.env might be the validated object, which t3-env loader handles
-       if (t3EnvLoader.matches(mod.env)) return t3EnvLoader.introspect(mod.env);
+      for (const loader of registeredLoaders) {
+        if (loader.matches(mod.env)) {
+          return loader.introspect(mod.env);
+        }
+      }
     }
 
-    throw new Error(`Could not find a valid Zod or t3-env schema exported from ${schemaPath}`);
+    throw new Error(`Could not find a valid schema exported from ${schemaPath}`);
   } catch (error: any) {
     if (error.code === "MODULE_NOT_FOUND") {
       throw new Error(`Schema file not found at ${absolutePath}`);
