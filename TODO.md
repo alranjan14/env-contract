@@ -16,7 +16,7 @@ Currently, `src/loaders/` supports Zod and `@t3-oss/env-core`. While the `standa
   - **Context:** Valibot is a highly requested, lightweight alternative to Zod.
   - **Task:** Create `src/loaders/valibot.ts` and refactor `load-schema.ts` to use a registered array of loaders.
   - **Goal:** Allow `env-contract` to automatically support Valibot out of the box.
-- [ ] **Implement `ArkType` Loader**
+- [x] **Implement `ArkType` Loader**
   - **Context:** ArkType is gaining popularity for its string-based schema definitions.
   - **Task:** Create `src/loaders/arktype.ts` and add it to the loader registry.
 

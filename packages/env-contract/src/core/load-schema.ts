@@ -3,9 +3,10 @@ import path from "node:path";
 import { t3EnvLoader } from "../loaders/t3-env.js";
 import { zodLoader } from "../loaders/zod.js";
 import { valibotLoader } from "../loaders/valibot.js";
+import { arktypeLoader } from "../loaders/arktype.js";
 import type { Schema } from "../loaders/types.js";
 
-const registeredLoaders = [t3EnvLoader, zodLoader, valibotLoader];
+const registeredLoaders = [t3EnvLoader, zodLoader, valibotLoader, arktypeLoader];
 
 export async function loadSchema(schemaPath: string, cwd: string = process.cwd()): Promise<Schema> {
   const absolutePath = path.isAbsolute(schemaPath) 
