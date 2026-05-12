@@ -24,7 +24,7 @@ Currently, `src/loaders/` supports Zod and `@t3-oss/env-core`. While the `standa
 
 To be a truly "architecturally good" npm package, `env-contract` must be composable. Tooling authors (like Vite plugin creators) will want to import our core engine.
 
-- [ ] **Export Core Engine Functions**
+- [x] **Export Core Engine Functions**
   - **Context:** `src/index.ts` currently only exports `config.ts`, `load-schema.ts`, and types.
   - **Task:** Export `diff` from `src/core/diff.ts`, `generateExample` from `src/core/generate-example.ts`, and `scanSource` from `src/core/scan-source.ts`.
   - **Goal:** Enable developers to build `eslint-plugin-env-contract` or `vite-plugin-env-contract` using our primitives.
