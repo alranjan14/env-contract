@@ -52,10 +52,15 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
     
     try {
       const watcher = fs.watch(schemaPath);
+      let timeoutId: NodeJS.Timeout | null = null;
+
       for await (const event of watcher) {
         if (event.eventType === 'change') {
-          console.log(pc.gray(`\nFile changed. Syncing...`));
-          await executeSync();
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(async () => {
+            console.log(pc.gray(`\nFile changed. Syncing...`));
+            await executeSync();
+          }, 200);
         }
       }
     } catch (error: any) {

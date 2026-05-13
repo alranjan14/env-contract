@@ -33,12 +33,12 @@ To be a truly "architecturally good" npm package, `env-contract` must be composa
 
 While `oxc-parser` is incredibly fast, it carries a native binary footprint. For our AST scanner and watch modes to be robust, we need to address edge cases.
 
-- [ ] **Debounce Watch Mode Events**
+- [x] **Debounce Watch Mode Events**
   - **Context:** `fs.watch` in `src/commands/sync.ts` triggers immediately on every save.
   - **Task:** Implement a 200ms debounce using a simple `setTimeout` mechanism to prevent duplicate sync executions when editors rapidly trigger multiple OS file-system events.
-- [ ] **Template Literal Scanning**
+- [x] **Template Literal Scanning**
   - **Context:** The current AST scanner in `src/core/scan-source.ts` relies strictly on MemberExpressions (`process.env.FOO`).
-  - **Task:** Extend the visitor in `scan-source.ts` to detect `process.env` accesses embedded within Template Literals (e.g., \`\${process.env.API_URL}/users\`).
+  - **Task:** Extend the visitor in `scan-source.ts` to detect `process.env` accesses embedded within Template Literals (e.g., \`\${process.env.API_URL}/users\`). *(Verified: `oxc-parser` and `walkAst` handle this recursively out-of-the-box).*
 
 ## 4. Scalability: Workspace / Monorepo Mode (v0.4)
 
