@@ -1,53 +1,77 @@
 import fs from "node:fs/promises";
+import path from "node:path";
 import pc from "picocolors";
 import { loadSchema } from "../core/load-schema.js";
 import { generateExample } from "../core/generate-example.js";
 import { injectIntoContent } from "../utils/managed-block.js";
+import { findWorkspacePackages } from "../utils/workspace.js";
+import { loadConfig } from "../config.js";
 import type { Config } from "../config.js";
 
-export async function runSync(options: { yes?: boolean; check?: boolean; watch?: boolean }, config: Config = {}) {
+export async function runSync(options: { yes?: boolean; check?: boolean; watch?: boolean; workspace?: boolean }, config: Config = {}) {
+  const isWorkspace = options.workspace;
+
+  if (isWorkspace) {
+    const packages = await findWorkspacePackages(process.cwd());
+    if (packages.length === 0) {
+      console.log(pc.yellow("No workspace packages found."));
+      return 0;
+    }
+
+    let hasErrors = false;
+    const schemasToWatch: { path: string, pkgDir: string, config: Config }[] = [];
+
+    console.log(pc.cyan(`Found ${packages.length} packages in workspace.`));
+
+    for (const pkg of packages) {
+      // Load config for each package if it exists
+      const pkgConfigPath = pkg.type === "config" ? path.join(pkg.dir, "env-contract.config.ts") : undefined;
+      const pkgConfig = pkgConfigPath ? await loadConfig(pkgConfigPath) : {};
+      
+      const schemaPath = pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts");
+      const exampleFile = pkgConfig.exampleFile ? path.resolve(pkg.dir, pkgConfig.exampleFile) : path.join(pkg.dir, ".env.example");
+
+      console.log(pc.gray(`\nSyncing package: ${pkg.dir}`));
+      const code = await executeSync(schemaPath, exampleFile, options, pkgConfig);
+      if (code !== 0) hasErrors = true;
+
+      schemasToWatch.push({ path: schemaPath, pkgDir: pkg.dir, config: pkgConfig });
+    }
+
+    if (options.watch) {
+      console.log(pc.cyan(`\nWatching ${schemasToWatch.length} schemas for changes...`));
+      
+      for (const target of schemasToWatch) {
+        try {
+          const watcher = fs.watch(target.path);
+          let timeoutId: NodeJS.Timeout | null = null;
+          for await (const event of watcher) {
+            if (event.eventType === 'change') {
+              if (timeoutId) clearTimeout(timeoutId);
+              timeoutId = setTimeout(async () => {
+                console.log(pc.gray(`\nFile changed in ${target.pkgDir}. Syncing...`));
+                const exampleFile = target.config.exampleFile ? path.resolve(target.pkgDir, target.config.exampleFile) : path.join(target.pkgDir, ".env.example");
+                await executeSync(target.path, exampleFile, options, target.config);
+              }, 200);
+            }
+          }
+        } catch (error: any) {
+          console.error(pc.red(`✖ Failed to watch file ${target.path}: ${error.message}`));
+        }
+      }
+      return hasErrors ? 1 : 0;
+    }
+
+    return hasErrors ? 1 : 0;
+  }
+
+  // Single mode
   const schemaPath = config.schema || "src/env.ts";
   const exampleFile = config.exampleFile || ".env.example";
 
-  const executeSync = async () => {
-    try {
-      const schema = await loadSchema(schemaPath);
-      const newManagedContent = generateExample(schema);
-
-      let existingContent = "";
-      try {
-        existingContent = await fs.readFile(exampleFile, "utf-8");
-      } catch (e: any) {
-        if (e.code !== "ENOENT") throw e;
-      }
-
-      const updatedContent = injectIntoContent(existingContent, newManagedContent);
-
-      if (updatedContent === existingContent) {
-        if (!options.watch) console.log(pc.green(`✔ ${exampleFile} is already up to date with the schema.`));
-        return 0;
-      }
-
-      if (options.check) {
-        console.error(pc.red(`✖ Drift detected in ${exampleFile}. Run \`env-contract sync\` to update.`));
-        return 1;
-      }
-
-      await fs.writeFile(exampleFile, updatedContent, "utf-8");
-      console.log(pc.green(`✔ Successfully updated ${exampleFile}.`));
-      return 0;
-    } catch (error: any) {
-      console.error(pc.red(`✖ Sync failed: ${error.message}`));
-      return 2;
-    }
-  };
-
-  const initialCode = await executeSync();
+  const initialCode = await executeSync(schemaPath, exampleFile, options, config);
 
   if (options.watch) {
-    if (initialCode !== 0 && initialCode !== 2) {
-      // Keep watching even if there was an initial error
-    }
     console.log(pc.cyan(`\nWatching ${schemaPath} for changes...`));
     
     try {
@@ -59,7 +83,7 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
           if (timeoutId) clearTimeout(timeoutId);
           timeoutId = setTimeout(async () => {
             console.log(pc.gray(`\nFile changed. Syncing...`));
-            await executeSync();
+            await executeSync(schemaPath, exampleFile, options, config);
           }, 200);
         }
       }
@@ -70,4 +94,37 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
   }
 
   return initialCode;
+}
+
+async function executeSync(schemaPath: string, exampleFile: string, options: any, config: Config) {
+  try {
+    const schema = await loadSchema(schemaPath);
+    const newManagedContent = generateExample(schema);
+
+    let existingContent = "";
+    try {
+      existingContent = await fs.readFile(exampleFile, "utf-8");
+    } catch (e: any) {
+      if (e.code !== "ENOENT") throw e;
+    }
+
+    const updatedContent = injectIntoContent(existingContent, newManagedContent);
+
+    if (updatedContent === existingContent) {
+      if (!options.watch) console.log(pc.green(`✔ ${exampleFile} is already up to date with the schema.`));
+      return 0;
+    }
+
+    if (options.check) {
+      console.error(pc.red(`✖ Drift detected in ${exampleFile}. Run \`env-contract sync\` to update.`));
+      return 1;
+    }
+
+    await fs.writeFile(exampleFile, updatedContent, "utf-8");
+    console.log(pc.green(`✔ Successfully updated ${exampleFile}.`));
+    return 0;
+  } catch (error: any) {
+    console.error(pc.red(`✖ Sync failed: ${error.message}`));
+    return 2;
+  }
 }

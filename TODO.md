@@ -44,7 +44,7 @@ While `oxc-parser` is incredibly fast, it carries a native binary footprint. For
 
 Modern TS packages live in monorepos. Running `env-contract` individually in 20 packages is friction.
 
-- [ ] **Implement `--workspace` Flag**
+- [x] **Implement `--workspace` Flag**
   - **Context:** Add workspace detection to the CLI.
   - **Task:** Use `fs.readdir` (recursively, avoiding `node_modules` to stay dependency-free) to find all `env.ts` or `env-contract.config.ts` files across the monorepo.
   - **Goal:** Aggregate all drift reports into a single, comprehensive CI output.
