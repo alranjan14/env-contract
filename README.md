@@ -7,7 +7,7 @@ Keep your env schema, your .env.example, and your code references honest with ea
 
 ## Why
 
-If you're using `@t3-oss/env-core`, `envalid`, or any Zod-based env validator, runtime validation is solved. The thing that *isn't* solved is keeping your `.env.example` and your `process.env.*` references in sync with that schema.
+If you're using `@t3-oss/env-core`, `envalid`, or any Zod, Valibot, or ArkType-based env validator, runtime validation is solved. The thing that *isn't* solved is keeping your `.env.example` and your `process.env.*` references in sync with that schema.
 
 `env-contract` does three things:
 
@@ -25,7 +25,7 @@ pnpm add -D env-contract
 
 ## Quick start
 
-Given an existing `src/env.ts` (any Zod schema or `@t3-oss/env-core` setup):
+Given an existing `src/env.ts` (any Zod, Valibot, ArkType schema, or `@t3-oss/env-core` setup):
 
 ```bash
 npx env-contract sync     # writes .env.example
@@ -37,6 +37,15 @@ npx env-contract check    # CI-friendly composite
 
 ```yaml
 - run: pnpm env-contract check
+```
+
+## Monorepo / Workspace Support
+
+If you have a monorepo, `env-contract` can automatically discover all your internal packages (by looking for `package.json` with an `env.ts` or `env-contract.config.ts`) and process them all at once!
+
+```bash
+npx env-contract check --workspace
+npx env-contract sync --workspace --watch
 ```
 
 ## In a pre-commit hook

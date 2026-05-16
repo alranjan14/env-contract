@@ -9,7 +9,7 @@ export async function runCheck(options: { json?: boolean; workspace?: boolean },
   }
 
   // 1. Check sync drift
-  const syncCode = await runSync({ check: true, workspace: options.workspace }, config);
+  const syncCode = await runSync({ check: true, workspace: options.workspace, silent: !!options.json }, config);
   
   // 2. Check scan drift
   const scanCode = await runScan({ 

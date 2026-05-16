@@ -8,20 +8,20 @@ import { findWorkspacePackages } from "../utils/workspace.js";
 import { loadConfig } from "../config.js";
 import type { Config } from "../config.js";
 
-export async function runSync(options: { yes?: boolean; check?: boolean; watch?: boolean; workspace?: boolean }, config: Config = {}) {
+export async function runSync(options: { yes?: boolean; check?: boolean; watch?: boolean; workspace?: boolean; silent?: boolean }, config: Config = {}) {
   const isWorkspace = options.workspace;
 
   if (isWorkspace) {
     const packages = await findWorkspacePackages(process.cwd());
     if (packages.length === 0) {
-      console.log(pc.yellow("No workspace packages found."));
+      if (!options.silent) console.log(pc.yellow("No workspace packages found."));
       return 0;
     }
 
     let hasErrors = false;
     const schemasToWatch: { path: string, pkgDir: string, config: Config }[] = [];
 
-    console.log(pc.cyan(`Found ${packages.length} packages in workspace.`));
+    if (!options.silent) console.log(pc.cyan(`Found ${packages.length} packages in workspace.`));
 
     for (const pkg of packages) {
       // Load config for each package if it exists
@@ -31,7 +31,7 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
       const schemaPath = pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts");
       const exampleFile = pkgConfig.exampleFile ? path.resolve(pkg.dir, pkgConfig.exampleFile) : path.join(pkg.dir, ".env.example");
 
-      console.log(pc.gray(`\nSyncing package: ${pkg.dir}`));
+      if (!options.silent) console.log(pc.gray(`\nSyncing package: ${pkg.dir}`));
       const code = await executeSync(schemaPath, exampleFile, options, pkgConfig);
       if (code !== 0) hasErrors = true;
 
@@ -39,7 +39,7 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
     }
 
     if (options.watch) {
-      console.log(pc.cyan(`\nWatching ${schemasToWatch.length} schemas for changes...`));
+      if (!options.silent) console.log(pc.cyan(`\nWatching ${schemasToWatch.length} schemas for changes...`));
       
       for (const target of schemasToWatch) {
         try {
@@ -49,14 +49,14 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
             if (event.eventType === 'change') {
               if (timeoutId) clearTimeout(timeoutId);
               timeoutId = setTimeout(async () => {
-                console.log(pc.gray(`\nFile changed in ${target.pkgDir}. Syncing...`));
+                if (!options.silent) console.log(pc.gray(`\nFile changed in ${target.pkgDir}. Syncing...`));
                 const exampleFile = target.config.exampleFile ? path.resolve(target.pkgDir, target.config.exampleFile) : path.join(target.pkgDir, ".env.example");
                 await executeSync(target.path, exampleFile, options, target.config);
               }, 200);
             }
           }
         } catch (error: any) {
-          console.error(pc.red(`✖ Failed to watch file ${target.path}: ${error.message}`));
+          if (!options.silent) console.error(pc.red(`✖ Failed to watch file ${target.path}: ${error.message}`));
         }
       }
       return hasErrors ? 1 : 0;
@@ -72,7 +72,7 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
   const initialCode = await executeSync(schemaPath, exampleFile, options, config);
 
   if (options.watch) {
-    console.log(pc.cyan(`\nWatching ${schemaPath} for changes...`));
+    if (!options.silent) console.log(pc.cyan(`\nWatching ${schemaPath} for changes...`));
     
     try {
       const watcher = fs.watch(schemaPath);
@@ -82,13 +82,13 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
         if (event.eventType === 'change') {
           if (timeoutId) clearTimeout(timeoutId);
           timeoutId = setTimeout(async () => {
-            console.log(pc.gray(`\nFile changed. Syncing...`));
+            if (!options.silent) console.log(pc.gray(`\nFile changed. Syncing...`));
             await executeSync(schemaPath, exampleFile, options, config);
           }, 200);
         }
       }
     } catch (error: any) {
-      console.error(pc.red(`✖ Failed to watch file: ${error.message}`));
+      if (!options.silent) console.error(pc.red(`✖ Failed to watch file: ${error.message}`));
       return 2;
     }
   }
@@ -111,20 +111,20 @@ async function executeSync(schemaPath: string, exampleFile: string, options: any
     const updatedContent = injectIntoContent(existingContent, newManagedContent);
 
     if (updatedContent === existingContent) {
-      if (!options.watch) console.log(pc.green(`✔ ${exampleFile} is already up to date with the schema.`));
+      if (!options.watch && !options.silent) console.log(pc.green(`✔ ${exampleFile} is already up to date with the schema.`));
       return 0;
     }
 
     if (options.check) {
-      console.error(pc.red(`✖ Drift detected in ${exampleFile}. Run \`env-contract sync\` to update.`));
+      if (!options.silent) console.error(pc.red(`✖ Drift detected in ${exampleFile}. Run \`env-contract sync\` to update.`));
       return 1;
     }
 
     await fs.writeFile(exampleFile, updatedContent, "utf-8");
-    console.log(pc.green(`✔ Successfully updated ${exampleFile}.`));
+    if (!options.silent) console.log(pc.green(`✔ Successfully updated ${exampleFile}.`));
     return 0;
   } catch (error: any) {
-    console.error(pc.red(`✖ Sync failed: ${error.message}`));
+    if (!options.silent) console.error(pc.red(`✖ Sync failed: ${error.message}`));
     return 2;
   }
 }
