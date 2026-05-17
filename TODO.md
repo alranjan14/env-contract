@@ -12,7 +12,7 @@ To ensure the package remains **lightweight** and **architecturally sound** as w
 
 The codebase is ready. We must execute the playbook to gain traction.
 
-- [ ] **Publish v0.1.0 via Changesets**
+- [x] **Publish v0.1.0 via Changesets**
   - **Task:** Run `pnpm changeset`, commit, and trigger the GitHub Action OIDC publishing workflow.
 - [ ] **Community Outreach**
   - **Task:** Execute the marketing playbook. Post to r/typescript, r/nextjs, e18e.dev, and open a discussion on the `t3-oss/t3-env` repository.
