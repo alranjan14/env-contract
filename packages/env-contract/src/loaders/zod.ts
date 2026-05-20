@@ -1,17 +1,27 @@
-import { z } from "zod";
 import type { Schema, SchemaEntry } from "./types.js";
 
-export function introspectZodSchema(obj: z.ZodObject<any>, scope: "server" | "client" = "server"): Schema {
-  const entries: SchemaEntry[] = [];
+type ZodLikeSchema = {
+  _def?: Record<string, any>;
+  def?: Record<string, any>;
+  shape?: Record<string, unknown>;
+  description?: string;
+  parse?: unknown;
+  safeParse?: unknown;
+  constructor?: { name?: string };
+};
 
-  for (const [key, schema] of Object.entries(obj.shape)) {
-    entries.push(introspectZodType(key, schema as z.ZodTypeAny, scope));
+export function introspectZodSchema(obj: ZodLikeSchema, scope: "server" | "client" = "server"): Schema {
+  const entries: SchemaEntry[] = [];
+  const shape = getObjectShape(obj) ?? {};
+
+  for (const [key, schema] of Object.entries(shape)) {
+    entries.push(introspectZodType(key, schema as ZodLikeSchema, scope));
   }
 
   return { entries };
 }
 
-function introspectZodType(key: string, type: z.ZodTypeAny, scope: "server" | "client"): SchemaEntry {
+function introspectZodType(key: string, type: ZodLikeSchema, scope: "server" | "client"): SchemaEntry {
   let current = type;
   let description: string | undefined = current.description;
   let defaultValue: any = undefined;
@@ -76,9 +86,9 @@ function introspectZodType(key: string, type: z.ZodTypeAny, scope: "server" | "c
   };
 }
 
-function getFriendlyTypeName(type: z.ZodTypeAny): string {
+function getFriendlyTypeName(type: ZodLikeSchema): string {
   if (!type) return "unknown";
-  const def = (type as any)._def || (type as any).def;
+  const def = getDef(type);
   if (!def) return "unknown";
   
   const typeName = def.typeName || def.type;
@@ -88,9 +98,9 @@ function getFriendlyTypeName(type: z.ZodTypeAny): string {
   switch (typeName) {
     case "ZodString":
     case "string":
-      if (def.checks?.some((c: any) => c.kind === "url" || c.format === "url")) return "url";
-      if (def.checks?.some((c: any) => c.kind === "email" || c.format === "email")) return "email";
-      if (def.checks?.some((c: any) => c.kind === "uuid" || c.format === "uuid")) return "uuid";
+      if (hasStringFormat(type, def, "url")) return "url";
+      if (hasStringFormat(type, def, "email")) return "email";
+      if (hasStringFormat(type, def, "uuid")) return "uuid";
       return "string";
     case "ZodNumber":
     case "number":
@@ -101,6 +111,7 @@ function getFriendlyTypeName(type: z.ZodTypeAny): string {
     case "ZodEnum":
     case "enum":
       if (def.values) return `enum(${def.values.join(" | ")})`;
+      if (def.entries) return `enum(${Object.values(def.entries).join(" | ")})`;
       return "enum";
     case "ZodNativeEnum":
     case "nativeEnum":
@@ -113,7 +124,59 @@ function getFriendlyTypeName(type: z.ZodTypeAny): string {
   }
 }
 
+function isZodObject(obj: any): boolean {
+  if (!obj || typeof obj !== "object") return false;
+
+  const def = getDef(obj);
+  const typeName = def?.typeName || def?.type;
+  const shape = getObjectShape(obj);
+
+  return (
+    shape !== undefined &&
+    (typeName === "ZodObject" ||
+      typeName === "object" ||
+      obj.constructor?.name === "ZodObject") &&
+    (typeof obj.parse === "function" || typeof obj.safeParse === "function")
+  );
+}
+
+function getDef(schema: ZodLikeSchema | undefined): Record<string, any> | undefined {
+  return schema?._def || schema?.def;
+}
+
+function getObjectShape(obj: ZodLikeSchema): Record<string, unknown> | undefined {
+  if (obj.shape && typeof obj.shape === "object") {
+    return obj.shape;
+  }
+
+  const def = getDef(obj);
+  if (!def) return undefined;
+
+  if (typeof def.shape === "function") {
+    return def.shape();
+  }
+
+  if (def.shape && typeof def.shape === "object") {
+    return def.shape;
+  }
+
+  return undefined;
+}
+
+function hasStringFormat(type: ZodLikeSchema, def: Record<string, any>, format: string): boolean {
+  if ((type as any).format === format || def.format === format) return true;
+
+  return def.checks?.some((check: any) => {
+    return (
+      check?.kind === format ||
+      check?.format === format ||
+      check?._zod?.def?.check === format ||
+      check?._zod?.def?.format === format
+    );
+  });
+}
+
 export const zodLoader = {
-  matches: (obj: any): boolean => obj instanceof z.ZodObject,
+  matches: isZodObject,
   introspect: (obj: any): Schema => introspectZodSchema(obj),
 };

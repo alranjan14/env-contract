@@ -12,11 +12,15 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
 
 ## P0 - Release Blockers
 
-- [ ] Fix optional peer dependency loading.
-  - [ ] Remove the static `import { z } from "zod"` from the always-loaded bundle, or make `zod` a required peer.
-  - [ ] If Zod remains optional, lazy-load the Zod loader only when a Zod schema is being matched.
-  - [ ] Ensure `import("env-contract")` works in a fresh project with no validator peers installed.
-  - [ ] Add a tarball smoke test for installs with no peer validators, with Zod, with Valibot, and with ArkType.
+- [x] Fix optional peer dependency loading.
+  - [x] Remove the static `import { z } from "zod"` from the always-loaded bundle, or make `zod` a required peer.
+  - [x] If Zod remains optional, avoid loading Zod as a runtime dependency during package import.
+  - [x] Ensure `import("env-contract")` works in a fresh project with no validator peers installed.
+  - [x] Add a tarball smoke test matrix for validator peer installs.
+    - [x] No validator peers installed.
+    - [x] With Zod installed.
+    - [x] With Valibot installed.
+    - [x] With ArkType installed.
 
 - [ ] Restore the "read-only by default" trust contract for `sync`.
   - [ ] Show a diff before writing unless `--yes` is passed.
