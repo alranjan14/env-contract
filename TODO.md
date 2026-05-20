@@ -1,18 +1,272 @@
-# env-contract — Architectural Roadmap & TODOs
+# env-contract - Architectural Roadmap & TODOs
 
-As an npm package architect, I have reviewed the current implementation against the `env-contract-spec.md` and `npm-package-launch-playbook.md`.
+This TODO is based on a review of the current implementation against
+`env-contract-spec.md` and `npm-package-launch-playbook.md`.
 
-The v0.1.0 MVP and v0.2.0 Polish phases are fully implemented. The foundation is exceptionally solid: we rely on a minimal set of dependencies (`cac`, `jiti`, `picocolors`, `oxc-parser`), ship dual ESM/CJS formats via `tsup`, and correctly export the CLI bin.
-
-To ensure the package remains **lightweight** and **architecturally sound** as we scale to v1.0, here are the detailed architectural findings and the remaining tasks to be implemented.
+Current status: the product direction is strong, but the package is not
+publish-ready yet. `pnpm run build` and `pnpm run test` pass, but
+`pnpm run typecheck`, `pnpm run lint`, and a fresh consumer import from the
+packed tarball currently fail. Treat the P0 section as release-blocking.
 
 ---
 
-## 5. Launch & Distribution
+## P0 - Release Blockers
 
-The codebase is ready. We must execute the playbook to gain traction.
+- [ ] Fix optional peer dependency loading.
+  - [ ] Remove the static `import { z } from "zod"` from the always-loaded bundle, or make `zod` a required peer.
+  - [ ] If Zod remains optional, lazy-load the Zod loader only when a Zod schema is being matched.
+  - [ ] Ensure `import("env-contract")` works in a fresh project with no validator peers installed.
+  - [ ] Add a tarball smoke test for installs with no peer validators, with Zod, with Valibot, and with ArkType.
 
-- [x] **Publish v0.1.0 via Changesets**
-  - **Task:** Run `pnpm changeset`, commit, and trigger the GitHub Action OIDC publishing workflow.
-- [x] **Community Outreach**
-  - **Task:** Execute the marketing playbook. Post to r/typescript, r/nextjs, e18e.dev, and open a discussion on the `t3-oss/t3-env` repository.
+- [ ] Restore the "read-only by default" trust contract for `sync`.
+  - [ ] Show a diff before writing unless `--yes` is passed.
+  - [ ] Prompt before writing in normal local usage.
+  - [ ] Ensure `sync --check` is a true dry run and never writes.
+  - [ ] Write `.env.example` atomically to avoid corrupting files on interruption.
+  - [ ] Add tests for prompt/no-prompt, `--yes`, `--check`, missing target file, and existing managed block replacement.
+
+- [ ] Wire config resolution and CLI flags end to end.
+  - [ ] Implement config resolution order: `--config`, config files, `package.json` field, defaults.
+  - [ ] Add global flags from the spec: `--config`, `--schema`, `--cwd`, `--silent`, `--json`.
+  - [ ] Add command flags from the spec: `sync --target`, `scan --include`, `scan --exclude`.
+  - [ ] Pass resolved config into `runSync`, `runScan`, `runCheck`, and `runInstall`.
+  - [ ] Add tests proving CLI flags override config values.
+
+- [ ] Make `check` match the spec.
+  - [ ] Do not force unused-schema detection by default.
+  - [ ] Add `check --strict` if strict unused-key checks are desired.
+  - [ ] Include sync drift, orphaned references, dynamic references, and unused schema keys in JSON output.
+  - [ ] Preserve exit codes: `0` healthy, `1` drift, `2` configuration/runtime error.
+
+- [ ] Fix TypeScript and lint failures.
+  - [ ] Resolve `exactOptionalPropertyTypes` errors in `check.ts` and `scan.ts`.
+  - [ ] Add explicit types for workspace scan reports instead of relying on broad inference.
+  - [ ] Replace empty catches in workspace discovery with intentional ignored-error handling.
+  - [ ] Fix `prefer-const` and unused variable warnings.
+  - [ ] Update `prepublishOnly` to run `typecheck`, `lint`, `build`, and `test`.
+
+- [ ] Fix package contents before publishing.
+  - [ ] Ensure `LICENSE` is included in the published `env-contract` package.
+  - [ ] Ensure `CHANGELOG.md` exists and is included in the package.
+  - [ ] Run `npm pack --dry-run` and verify the tarball contains only intended files.
+  - [ ] Add a script or CI step for package content inspection.
+
+- [ ] Update supported runtime versions.
+  - [ ] Revisit the Node support policy now that Node 18 and Node 20 are EOL as of 2026-05-20.
+  - [ ] Update `engines.node` to the actual supported range, likely Node 22+.
+  - [ ] Update CI and release workflows to test/use Node 22 and Node 24.
+  - [ ] Ensure the release workflow uses an npm version compatible with Trusted Publishing.
+
+- [ ] Clean up incorrect status claims.
+  - [ ] Remove claims that v0.1 and v0.2 are fully implemented until the release gates pass.
+  - [ ] Remove launch/community tasks marked complete unless they have actually happened.
+
+---
+
+## P1 - Core Product Correctness
+
+- [ ] Implement real `.env.example` drift detection.
+  - [ ] Extract keys only from the managed block.
+  - [ ] Compare schema keys, managed example keys, and scanned references in `check`.
+  - [ ] Report missing and extra managed-block keys separately.
+  - [ ] Add tests for absent markers, malformed markers, duplicate keys, comments, and manual content outside the block.
+
+- [ ] Harden AST scanning.
+  - [ ] Replace suffix matching with real include/exclude pattern support or clearly document the reduced matcher.
+  - [ ] Honor config `scan.include` and `scan.exclude`.
+  - [ ] Exclude generated and dependency directories by default: `node_modules`, `dist`, `.git`, `.next`, `.nuxt`, `coverage`, `build`.
+  - [ ] Detect `Object.keys(process.env)` and report it as dynamic.
+  - [ ] Detect optional chaining where the parser represents it differently.
+  - [ ] Keep warning on `process.env[someVar]` and `import.meta.env[someVar]`.
+  - [ ] Return parse errors as structured warnings instead of direct `console.warn` from core.
+  - [ ] Make reported file paths relative to the configured cwd.
+  - [ ] Add golden tests for every scanner pattern listed in the spec.
+
+- [ ] Improve schema loading reliability.
+  - [ ] Auto-detect `src/env.ts`, `src/env/index.ts`, and `env.ts`.
+  - [ ] Prefer explicit exported schema names such as `envSchema` for non-t3 projects.
+  - [ ] Document how users can avoid runtime validation crashes during introspection.
+  - [ ] Add fixtures for Zod v3 and Zod v4 internals.
+  - [ ] Add fixtures for t3-env server/client scopes and client prefixes.
+  - [ ] Decide whether Valibot and ArkType stay in v0.1 or move back to roadmap status.
+  - [ ] If Valibot/ArkType stay, mark support as experimental until tested against realistic schemas.
+
+- [ ] Tighten `.env.example` generation.
+  - [ ] Confirm final ordering: server first, client second, alphabetical inside each group or declaration order.
+  - [ ] Match optional/default comment formatting from the spec.
+  - [ ] Never write real default values as example values.
+  - [ ] Include the schema path in the generated block header where possible.
+  - [ ] Add tests for descriptions, defaults, optional/nullish schemas, enums, URLs, emails, and transforms.
+
+- [ ] Re-scope workspace support.
+  - [ ] For v0.1, prefer per-package usage through `--cwd` as described in the spec.
+  - [ ] Remove `--workspace` from the README if it is not production-ready.
+  - [ ] If keeping `--workspace`, discover packages from `pnpm-workspace.yaml`, npm/yarn workspaces, or explicit config.
+  - [ ] Avoid recursively treating unrelated nested `package.json` files as workspace packages.
+  - [ ] Add Windows, macOS, and Ubuntu tests for workspace paths.
+
+- [ ] Improve `install`.
+  - [ ] Detect package manager and print the right command: `pnpm exec`, `npm exec`, `yarn`, or `bunx`.
+  - [ ] Update Husky support for current Husky behavior instead of assuming the old `husky.sh` hook body.
+  - [ ] Keep simple-git-hooks edits idempotent.
+  - [ ] Decide whether lefthook should be written automatically or remain printed guidance.
+  - [ ] Add tests for Husky, simple-git-hooks, lefthook, no hook manager, and `--yes`.
+
+---
+
+## P2 - Programmatic API And Architecture
+
+- [ ] Align exported API with the spec.
+  - [ ] Support `loadSchema({ path, cwd })` in addition to the current positional form, or update the spec.
+  - [ ] Export `scan`, `check`, and `generateExample` with options that match the public README.
+  - [ ] Ensure API functions do not write to stdout/stderr.
+  - [ ] Return structured reports from core functions.
+  - [ ] Keep CLI formatting in reporters, not in core logic.
+
+- [ ] Add reporter modules.
+  - [ ] Create pretty reporter for human CLI output.
+  - [ ] Create JSON reporter for stable machine-readable output.
+  - [ ] Keep report types stable enough for CI integrations.
+
+- [ ] Maintain the small dependency budget deliberately.
+  - [ ] Re-evaluate whether glob support needs a fifth dependency.
+  - [ ] If adding a glob library, document the tradeoff and choose a tiny maintained package.
+  - [ ] Keep no telemetry, no postinstall scripts, and no network access.
+
+---
+
+## P2 - Tests And CI
+
+- [ ] Add realistic fixtures.
+  - [ ] `basic-zod`
+  - [ ] `t3-env-nextjs`
+  - [ ] `t3-env-with-presets`
+  - [ ] `orphan-refs`
+  - [ ] `empty-project`
+  - [ ] `parse-error`
+  - [ ] `monorepo` only if workspace mode is retained
+
+- [ ] Add CLI E2E coverage.
+  - [ ] `sync` creates a new `.env.example`.
+  - [ ] `sync` preserves manual content outside the managed block.
+  - [ ] `sync --check` exits `1` without writing when drift exists.
+  - [ ] `scan` reports orphaned references.
+  - [ ] `scan --strict` reports unused schema keys.
+  - [ ] `check` reports sync drift and scan drift together.
+  - [ ] `--json` output is valid JSON for success, drift, and runtime error cases.
+
+- [ ] Add downstream package smoke tests.
+  - [ ] Install from `npm pack` tarball in a fresh directory.
+  - [ ] Test ESM import.
+  - [ ] Test CommonJS require.
+  - [ ] Test CLI bin execution.
+  - [ ] Test type resolution in a downstream TypeScript project.
+
+- [ ] Expand CI matrix.
+  - [ ] Run on Ubuntu, macOS, and Windows.
+  - [ ] Run on Node 22 and Node 24.
+  - [ ] Keep `typecheck`, `lint`, `build`, `test`, and tarball smoke tests as required checks.
+  - [ ] Consider package-manager smoke tests for pnpm, npm, yarn, and bun after v0.1.
+
+---
+
+## P2 - Documentation And Developer Experience
+
+- [ ] Rewrite the README to match what is actually supported.
+  - [ ] Lead with install and quick start in the first screen.
+  - [ ] Add "Supported today", "Experimental", and "Roadmap" sections.
+  - [ ] Remove or qualify Valibot, ArkType, watch mode, and workspace claims until they are production-ready.
+  - [ ] Add CLI reference with all flags and exit codes.
+  - [ ] Add config reference.
+  - [ ] Add known limitations prominently.
+  - [ ] Add troubleshooting for schema import/runtime validation failures.
+  - [ ] Add a fair comparison table.
+
+- [ ] Add framework recipes.
+  - [ ] T3 / `@t3-oss/env-core`
+  - [ ] Next.js
+  - [ ] Vite / Astro using `import.meta.env`
+  - [ ] Express or Hono with plain Zod
+  - [ ] Turborepo per-package recipe
+
+- [ ] Clean up repo documentation.
+  - [ ] Make root `README.md` either the real docs or a short pointer to `packages/env-contract/README.md`.
+  - [ ] Update `env-contract-spec.md` with decisions made during implementation.
+  - [ ] Update `npm-package-launch-playbook.md` if any publishing assumptions change.
+  - [ ] Decide whether spec/playbook docs should be committed; if yes, stop ignoring them in `.gitignore`.
+
+- [ ] Prepare future docs site scope.
+  - [ ] Defer full docs site until README grows large or users ask for deeper guides.
+  - [ ] If needed, use Astro Starlight, Nextra, or VitePress.
+  - [ ] Initial docs IA: Get Started, Commands, Config, Loaders, CI, Monorepos, API, Limitations.
+
+---
+
+## P2 - Governance, Security, And Repo Hygiene
+
+- [ ] Replace placeholder governance files.
+  - [ ] Replace placeholder text in `CODE_OF_CONDUCT.md` with the full Contributor Covenant text.
+  - [ ] Replace placeholder email in `SECURITY.md` or point to GitHub Security Advisories.
+  - [ ] Update `CONTRIBUTING.md` with real repo URL and required local checks.
+
+- [ ] Clean tracked development artifacts.
+  - [ ] Remove `packages/env-contract/test-output.txt` if it is only local output.
+  - [ ] Remove `packages/env-contract/test_cli_fail.ts` if it is only a scratch script.
+  - [ ] Remove `packages/env-contract/test_template.ts` if it is only a scratch script.
+  - [ ] Ensure scratch files stay ignored.
+
+- [ ] Add or verify changelog flow.
+  - [ ] Ensure changesets generates package changelog entries.
+  - [ ] Keep `.changeset` summaries honest and not ahead of implementation.
+  - [ ] Confirm package version and changelog before every publish.
+
+- [ ] Verify GitHub settings before launch.
+  - [ ] Enable Dependabot alerts and security updates.
+  - [ ] Protect `main` with required CI checks.
+  - [ ] Enable Discussions only if you plan to monitor them.
+  - [ ] Configure npm Trusted Publishing for the exact repository and workflow.
+
+---
+
+## P3 - Launch And Adoption
+
+- [ ] Complete pre-publish checklist.
+  - [ ] npm account has 2FA enabled.
+  - [ ] GitHub account has 2FA enabled.
+  - [ ] `npm whoami` returns the intended publisher.
+  - [ ] Repository URL exactly matches npm Trusted Publishing configuration.
+  - [ ] No `.env` files, secrets, internal docs, or accidental artifacts in tarball.
+
+- [ ] Publish only after release gates pass.
+  - [ ] `pnpm run typecheck`
+  - [ ] `pnpm run lint`
+  - [ ] `pnpm run build`
+  - [ ] `pnpm run test`
+  - [ ] `npm pack --dry-run`
+  - [ ] Fresh install/import smoke test from tarball
+  - [ ] CLI smoke test from tarball
+
+- [ ] Prepare launch assets.
+  - [ ] GitHub release notes for v0.1.0.
+  - [ ] Short demo recording showing schema drift, sync, and scan.
+  - [ ] Launch post with honest limitations.
+  - [ ] T3 discussion framed as companion tooling, not competition.
+  - [ ] Submissions to relevant newsletters and communities after the package is stable.
+
+- [ ] Track adoption after launch.
+  - [ ] Weekly downloads.
+  - [ ] Issues opened and resolved.
+  - [ ] Common user failures.
+  - [ ] README conversion feedback.
+  - [ ] Starter-template integration opportunities.
+
+---
+
+## Definition Of Publish Ready
+
+- [ ] All P0 items are complete.
+- [ ] README claims match implemented behavior.
+- [ ] Fresh tarball install works in a clean project.
+- [ ] CI passes on supported OS and Node versions.
+- [ ] The package can run against at least one real T3 project and one plain Zod project.
+- [ ] Known limitations are documented plainly.
