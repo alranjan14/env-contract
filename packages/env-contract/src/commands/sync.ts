@@ -5,6 +5,9 @@ import { loadSchema } from "../core/load-schema.js";
 import { generateExample } from "../core/generate-example.js";
 import { injectIntoContent } from "../utils/managed-block.js";
 import { findWorkspacePackages } from "../utils/workspace.js";
+import { confirm } from "../utils/prompt.js";
+import { showDiff } from "../utils/diff.js";
+import { writeAtomically } from "../utils/file.js";
 import { loadConfig } from "../config.js";
 import type { Config } from "../config.js";
 
@@ -120,7 +123,17 @@ async function executeSync(schemaPath: string, exampleFile: string, options: any
       return 1;
     }
 
-    await fs.writeFile(exampleFile, updatedContent, "utf-8");
+    if (!options.yes && !options.silent) {
+      console.log(pc.yellow(`\nDrift detected in ${exampleFile}.`));
+      showDiff(existingContent, updatedContent);
+      const accepted = await confirm(pc.cyan(`Apply these changes to ${exampleFile}? (y/N)`));
+      if (!accepted) {
+        console.log(pc.gray("Canceled by user."));
+        return 0;
+      }
+    }
+
+    await writeAtomically(exampleFile, updatedContent);
     if (!options.silent) console.log(pc.green(`✔ Successfully updated ${exampleFile}.`));
     return 0;
   } catch (error: any) {

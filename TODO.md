@@ -22,12 +22,12 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
     - [x] With Valibot installed.
     - [x] With ArkType installed.
 
-- [ ] Restore the "read-only by default" trust contract for `sync`.
-  - [ ] Show a diff before writing unless `--yes` is passed.
-  - [ ] Prompt before writing in normal local usage.
-  - [ ] Ensure `sync --check` is a true dry run and never writes.
-  - [ ] Write `.env.example` atomically to avoid corrupting files on interruption.
-  - [ ] Add tests for prompt/no-prompt, `--yes`, `--check`, missing target file, and existing managed block replacement.
+- [x] Restore the "read-only by default" trust contract for `sync`.
+  - [x] Show a diff before writing unless `--yes` is passed.
+  - [x] Prompt before writing in normal local usage.
+  - [x] Ensure `sync --check` is a true dry run and never writes.
+  - [x] Write `.env.example` atomically to avoid corrupting files on interruption.
+  - [x] Add tests for prompt/no-prompt, `--yes`, `--check`, missing target file, and existing managed block replacement.
 
 - [ ] Wire config resolution and CLI flags end to end.
   - [ ] Implement config resolution order: `--config`, config files, `package.json` field, defaults.
