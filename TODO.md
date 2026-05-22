@@ -29,12 +29,12 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Write `.env.example` atomically to avoid corrupting files on interruption.
   - [x] Add tests for prompt/no-prompt, `--yes`, `--check`, missing target file, and existing managed block replacement.
 
-- [ ] Wire config resolution and CLI flags end to end.
-  - [ ] Implement config resolution order: `--config`, config files, `package.json` field, defaults.
-  - [ ] Add global flags from the spec: `--config`, `--schema`, `--cwd`, `--silent`, `--json`.
-  - [ ] Add command flags from the spec: `sync --target`, `scan --include`, `scan --exclude`.
-  - [ ] Pass resolved config into `runSync`, `runScan`, `runCheck`, and `runInstall`.
-  - [ ] Add tests proving CLI flags override config values.
+- [x] Wire config resolution and CLI flags end to end.
+  - [x] Implement config resolution order: `--config`, config files, `package.json` field, defaults.
+  - [x] Add global flags from the spec: `--config`, `--schema`, `--cwd`, `--silent`, `--json`.
+  - [x] Add command flags from the spec: `sync --target`, `scan --include`, `scan --exclude`.
+  - [x] Pass resolved config into `runSync`, `runScan`, `runCheck`, and `runInstall`.
+  - [x] Add tests proving CLI flags override config values.
 
 - [ ] Make `check` match the spec.
   - [ ] Do not force unused-schema detection by default.

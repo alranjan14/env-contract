@@ -8,37 +8,39 @@ import { findWorkspacePackages } from "../utils/workspace.js";
 import { confirm } from "../utils/prompt.js";
 import { showDiff } from "../utils/diff.js";
 import { writeAtomically } from "../utils/file.js";
-import { loadConfig } from "../config.js";
+import { resolveConfig } from "../config.js";
 import type { Config } from "../config.js";
 
-export async function runSync(options: { yes?: boolean; check?: boolean; watch?: boolean; workspace?: boolean; silent?: boolean }, config: Config = {}) {
+export async function runSync(
+  options: { target?: string; yes?: boolean; check?: boolean; watch?: boolean; workspace?: boolean; silent?: boolean; cwd?: string; schema?: string },
+  config: Config = {}
+) {
+  const cwd = options.cwd || process.cwd();
   const isWorkspace = options.workspace;
 
   if (isWorkspace) {
-    const packages = await findWorkspacePackages(process.cwd());
+    const packages = await findWorkspacePackages(cwd);
     if (packages.length === 0) {
       if (!options.silent) console.log(pc.yellow("No workspace packages found."));
       return 0;
     }
 
     let hasErrors = false;
-    const schemasToWatch: { path: string, pkgDir: string, config: Config }[] = [];
+    const schemasToWatch: { path: string, pkgDir: string, targetExampleFile: string }[] = [];
 
     if (!options.silent) console.log(pc.cyan(`Found ${packages.length} packages in workspace.`));
 
     for (const pkg of packages) {
-      // Load config for each package if it exists
-      const pkgConfigPath = pkg.type === "config" ? path.join(pkg.dir, "env-contract.config.ts") : undefined;
-      const pkgConfig = pkgConfigPath ? await loadConfig(pkgConfigPath) : {};
+      const pkgConfig = await resolveConfig(pkg.dir);
       
-      const schemaPath = pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts");
-      const exampleFile = pkgConfig.exampleFile ? path.resolve(pkg.dir, pkgConfig.exampleFile) : path.join(pkg.dir, ".env.example");
+      const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts"));
+      const exampleFile = options.target ? path.resolve(cwd, options.target) : (pkgConfig.exampleFile ? path.resolve(pkg.dir, pkgConfig.exampleFile) : path.join(pkg.dir, ".env.example"));
 
       if (!options.silent) console.log(pc.gray(`\nSyncing package: ${pkg.dir}`));
-      const code = await executeSync(schemaPath, exampleFile, options, pkgConfig);
+      const code = await executeSync(schemaPath, exampleFile, options);
       if (code !== 0) hasErrors = true;
 
-      schemasToWatch.push({ path: schemaPath, pkgDir: pkg.dir, config: pkgConfig });
+      schemasToWatch.push({ path: schemaPath, pkgDir: pkg.dir, targetExampleFile: exampleFile });
     }
 
     if (options.watch) {
@@ -53,8 +55,7 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
               if (timeoutId) clearTimeout(timeoutId);
               timeoutId = setTimeout(async () => {
                 if (!options.silent) console.log(pc.gray(`\nFile changed in ${target.pkgDir}. Syncing...`));
-                const exampleFile = target.config.exampleFile ? path.resolve(target.pkgDir, target.config.exampleFile) : path.join(target.pkgDir, ".env.example");
-                await executeSync(target.path, exampleFile, options, target.config);
+                await executeSync(target.path, target.targetExampleFile, options);
               }, 200);
             }
           }
@@ -69,10 +70,10 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
   }
 
   // Single mode
-  const schemaPath = config.schema || "src/env.ts";
-  const exampleFile = config.exampleFile || ".env.example";
+  const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : path.resolve(cwd, "src/env.ts"));
+  const exampleFile = options.target ? path.resolve(cwd, options.target) : (config.exampleFile ? path.resolve(cwd, config.exampleFile) : path.resolve(cwd, ".env.example"));
 
-  const initialCode = await executeSync(schemaPath, exampleFile, options, config);
+  const initialCode = await executeSync(schemaPath, exampleFile, options);
 
   if (options.watch) {
     if (!options.silent) console.log(pc.cyan(`\nWatching ${schemaPath} for changes...`));
@@ -86,7 +87,7 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
           if (timeoutId) clearTimeout(timeoutId);
           timeoutId = setTimeout(async () => {
             if (!options.silent) console.log(pc.gray(`\nFile changed. Syncing...`));
-            await executeSync(schemaPath, exampleFile, options, config);
+            await executeSync(schemaPath, exampleFile, options);
           }, 200);
         }
       }
@@ -99,7 +100,7 @@ export async function runSync(options: { yes?: boolean; check?: boolean; watch?:
   return initialCode;
 }
 
-async function executeSync(schemaPath: string, exampleFile: string, options: any, config: Config) {
+async function executeSync(schemaPath: string, exampleFile: string, options: any) {
   try {
     const schema = await loadSchema(schemaPath);
     const newManagedContent = generateExample(schema);

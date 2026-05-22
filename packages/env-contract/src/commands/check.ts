@@ -3,18 +3,22 @@ import { runSync } from "./sync.js";
 import { runScan } from "./scan.js";
 import type { Config } from "../config.js";
 
-export async function runCheck(options: { json?: boolean; workspace?: boolean }, config: Config = {}) {
+export async function runCheck(options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string }, config: Config = {}) {
   if (!options.json) {
     console.log(pc.cyan("Running environment contract check..."));
   }
 
   // 1. Check sync drift
-  const syncCode = await runSync({ check: true, workspace: options.workspace, silent: !!options.json }, config);
+  const syncCode = await runSync({ 
+    ...options,
+    check: true, 
+    silent: !!options.json 
+  }, config);
   
   // 2. Check scan drift
   const scanCode = await runScan({ 
-    strict: true, 
-    workspace: options.workspace,
+    ...options,
+    strict: options.strict ?? true,
     ...(options.json !== undefined ? { json: options.json } : {})
   }, config);
 

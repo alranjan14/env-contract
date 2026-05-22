@@ -18,9 +18,10 @@ async function ask(question: string): Promise<boolean> {
   });
 }
 
-export async function runInstall(options: { hook?: string; yes?: boolean }, config: Config = {}) {
+export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: string }, config: Config = {}) {
   const hookName = options.hook || "pre-commit";
-  const rootDir = config.rootDir || process.cwd();
+  const cwd = options.cwd || process.cwd();
+  const rootDir = config.rootDir ? path.resolve(cwd, config.rootDir) : cwd;
   
   console.log(pc.bold("env-contract setup helper\n"));
 

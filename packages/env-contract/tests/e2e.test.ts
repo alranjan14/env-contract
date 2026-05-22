@@ -90,4 +90,37 @@ export const schema = z.object({
     expect(apiExample).toContain("API_VAR=");
     expect(apiExample).toContain("API Package");
   });
+
+  it("should override config values with CLI flags", async () => {
+    const configDir = path.join(TMP_DIR, "config-override");
+    await fs.mkdir(path.join(configDir, "src"), { recursive: true });
+    
+    // Create config file
+    await fs.writeFile(path.join(configDir, "env-contract.config.ts"), `
+      export default {
+        schema: "src/default.ts",
+        exampleFile: ".env.default"
+      };
+    `);
+
+    // Create schema file at the override path
+    await fs.writeFile(path.join(configDir, "src/override.ts"), `
+      import { z } from "zod";
+      export const schema = z.object({ OVERRIDE_VAR: z.string().describe("Override Test") });
+    `);
+
+    // Run sync with CLI flags
+    execSync(`node ${CLI_PATH} sync --yes --schema src/override.ts --target .env.override`, {
+      cwd: configDir,
+      env: { ...process.env },
+      stdio: "pipe"
+    });
+
+    const overrideExample = await fs.readFile(path.join(configDir, ".env.override"), "utf-8");
+    expect(overrideExample).toContain("OVERRIDE_VAR=");
+    expect(overrideExample).toContain("Override Test");
+
+    // Ensure the default example file was NOT created
+    await expect(fs.access(path.join(configDir, ".env.default"))).rejects.toThrow();
+  });
 });

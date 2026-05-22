@@ -1,3 +1,7 @@
+import { createJiti } from "jiti";
+import path from "node:path";
+import fs from "node:fs/promises";
+
 export interface Config {
   schema?: string;
   exampleFile?: string;
@@ -13,9 +17,6 @@ export function defineConfig(config: Config): Config {
   return config;
 }
 
-import { createJiti } from "jiti";
-import path from "node:path";
-
 export async function loadConfig(configPath: string): Promise<Config> {
   try {
     const jiti = createJiti(import.meta.url);
@@ -25,4 +26,30 @@ export async function loadConfig(configPath: string): Promise<Config> {
   } catch (e) {
     return {};
   }
+}
+
+export async function resolveConfig(cwd: string, explicitConfigPath?: string): Promise<Config> {
+  if (explicitConfigPath) {
+    return loadConfig(path.resolve(cwd, explicitConfigPath));
+  }
+
+  const exts = [".ts", ".js", ".mjs", ".cjs"];
+  for (const ext of exts) {
+    const configPath = path.join(cwd, `env-contract.config${ext}`);
+    try {
+      await fs.access(configPath);
+      return await loadConfig(configPath);
+    } catch {}
+  }
+
+  try {
+    const pkgPath = path.join(cwd, "package.json");
+    const pkgContent = await fs.readFile(pkgPath, "utf-8");
+    const pkg = JSON.parse(pkgContent);
+    if (pkg["env-contract"]) {
+      return pkg["env-contract"];
+    }
+  } catch {}
+
+  return {};
 }

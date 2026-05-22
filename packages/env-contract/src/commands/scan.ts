@@ -4,15 +4,19 @@ import { scanSource } from "../core/scan-source.js";
 import { loadSchema } from "../core/load-schema.js";
 import { diff } from "../core/diff.js";
 import { findWorkspacePackages } from "../utils/workspace.js";
-import { loadConfig } from "../config.js";
+import { resolveConfig } from "../config.js";
 import type { Config } from "../config.js";
 
-export async function runScan(options: { strict?: boolean; json?: boolean; workspace?: boolean }, config: Config = {}) {
+export async function runScan(
+  options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string; include?: string[]; exclude?: string[] },
+  config: Config = {}
+) {
+  const cwd = options.cwd || process.cwd();
   const isWorkspace = options.workspace;
 
   try {
     if (isWorkspace) {
-      const packages = await findWorkspacePackages(process.cwd());
+      const packages = await findWorkspacePackages(cwd);
       if (packages.length === 0) {
         if (!options.json) console.log(pc.yellow("No workspace packages found."));
         return 0;
@@ -24,16 +28,17 @@ export async function runScan(options: { strict?: boolean; json?: boolean; works
       let hasErrors = false;
 
       for (const pkg of packages) {
-        const pkgConfigPath = pkg.type === "config" ? path.join(pkg.dir, "env-contract.config.ts") : undefined;
-        const pkgConfig = pkgConfigPath ? await loadConfig(pkgConfigPath) : {};
+        const pkgConfig = await resolveConfig(pkg.dir);
         
-        const schemaPath = pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts");
+        const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts"));
         const rootDir = pkgConfig.rootDir ? path.resolve(pkg.dir, pkgConfig.rootDir) : path.join(pkg.dir, "src");
+        const include = options.include || pkgConfig.scan?.include;
+        const exclude = options.exclude || pkgConfig.scan?.exclude;
 
         try {
           const [schema, report] = await Promise.all([
             loadSchema(schemaPath),
-            scanSource(rootDir),
+            scanSource(rootDir, { include, exclude }),
           ]);
 
           const result = diff(schema, [], report.references, {
@@ -98,15 +103,17 @@ export async function runScan(options: { strict?: boolean; json?: boolean; works
     }
 
     // Single mode
-    const schemaPath = config.schema || "src/env.ts";
-    const rootDir = config.rootDir || "src";
+    const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : path.join(cwd, "src/env.ts"));
+    const rootDir = config.rootDir ? path.resolve(cwd, config.rootDir) : path.join(cwd, "src");
+    const include = options.include || config.scan?.include;
+    const exclude = options.exclude || config.scan?.exclude;
 
     if (!options.json) {
       console.log(pc.cyan(`Scanning source in ${rootDir}...`));
     }
     const [schema, report] = await Promise.all([
       loadSchema(schemaPath),
-      scanSource(rootDir),
+      scanSource(rootDir, { include, exclude }),
     ]);
 
     const result = diff(schema, [], report.references, {

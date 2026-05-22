@@ -25,14 +25,29 @@ export async function findWorkspacePackages(rootDir: string): Promise<WorkspaceP
     }
 
     if (isPackage) {
-      const configPath = path.join(dir, "env-contract.config.ts");
-      const envPath = path.join(dir, "src/env.ts");
-      
+      const exts = [".ts", ".js", ".mjs", ".cjs"];
       let hasConfig = false;
       let hasEnv = false;
-      
-      try { await fs.access(configPath); hasConfig = true; } catch {}
-      try { await fs.access(envPath); hasEnv = true; } catch {}
+
+      for (const ext of exts) {
+        try {
+          await fs.access(path.join(dir, `env-contract.config${ext}`));
+          hasConfig = true;
+          break;
+        } catch {}
+      }
+
+      if (!hasConfig) {
+        try {
+          const pkgContent = await fs.readFile(path.join(dir, "package.json"), "utf-8");
+          const pkg = JSON.parse(pkgContent);
+          if (pkg["env-contract"]) {
+            hasConfig = true;
+          }
+        } catch {}
+      }
+
+      try { await fs.access(path.join(dir, "src/env.ts")); hasEnv = true; } catch {}
 
       if (hasConfig) {
         packages.push({ dir, type: "config" });
