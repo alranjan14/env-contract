@@ -8,9 +8,9 @@ import { resolveConfig } from "../config.js";
 import type { Config } from "../config.js";
 
 export async function runScan(
-  options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string; include?: string[]; exclude?: string[] },
+  options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string; include?: string[]; exclude?: string[]; silent?: boolean; _internal?: boolean },
   config: Config = {}
-) {
+): Promise<{ code: number; data?: any }> {
   const cwd = options.cwd || process.cwd();
   const isWorkspace = options.workspace;
 
@@ -18,11 +18,11 @@ export async function runScan(
     if (isWorkspace) {
       const packages = await findWorkspacePackages(cwd);
       if (packages.length === 0) {
-        if (!options.json) console.log(pc.yellow("No workspace packages found."));
-        return 0;
+        if (!options.json && !options.silent) console.log(pc.yellow("No workspace packages found."));
+        return { code: 0, data: [] };
       }
 
-      if (!options.json) console.log(pc.cyan(`Scanning ${packages.length} packages in workspace...`));
+      if (!options.json && !options.silent) console.log(pc.cyan(`Scanning ${packages.length} packages in workspace...`));
 
       const allReports = [];
       let hasErrors = false;
@@ -38,7 +38,7 @@ export async function runScan(
         try {
           const [schema, report] = await Promise.all([
             loadSchema(schemaPath),
-            scanSource(rootDir, { include, exclude }),
+            scanSource(rootDir, include),
           ]);
 
           const result = diff(schema, [], report.references, {
@@ -46,7 +46,14 @@ export async function runScan(
             ignoreKeys: pkgConfig.ignoreKeys,
           });
 
-          allReports.push({ package: pkg.dir, result, report });
+          const data = {
+            package: pkg.dir,
+            orphanedRefs: result.orphanedRefs,
+            unusedSchemaKeys: result.unusedSchemaKeys,
+            dynamicRefs: report.dynamic,
+          };
+          
+          allReports.push({ ...data, _reportRaw: report, _resultRaw: result });
 
           if (result.orphanedRefs.length > 0 || (!options.strict && result.unusedSchemaKeys.length > 0 && options.strict) || (options.strict && result.unusedSchemaKeys.length > 0)) {
             hasErrors = true;
@@ -57,49 +64,53 @@ export async function runScan(
         }
       }
 
-      if (options.json) {
-        console.log(JSON.stringify(allReports, null, 2));
-        return hasErrors ? 1 : 0;
+      if (options.json && !options._internal) {
+        console.log(JSON.stringify(allReports.map(r => {
+          const { _reportRaw, _resultRaw, ...rest } = r;
+          return rest;
+        }), null, 2));
+        return { code: hasErrors ? 1 : 0, data: allReports };
       }
 
       let printedErrors = false;
-      for (const rep of allReports) {
-        if (rep.error) {
-          console.error(pc.red(`✖ Scan failed for ${rep.package}: ${rep.error}`));
-          printedErrors = true;
-          continue;
+      if (!options.json && !options.silent) {
+        for (const rep of allReports) {
+          if (rep.error) {
+            console.error(pc.red(`✖ Scan failed for ${rep.package}: ${rep.error}`));
+            printedErrors = true;
+            continue;
+          }
+          if (rep.orphanedRefs.length > 0 || rep.dynamicRefs.length > 0 || (options.strict && rep.unusedSchemaKeys.length > 0)) {
+            console.log(pc.magenta(`\n📦 ${rep.package}`));
+            printedErrors = true;
+            
+            if (rep.orphanedRefs.length > 0) {
+              console.log(pc.yellow(`Found ${rep.orphanedRefs.length} orphaned references (not in schema):`));
+              for (const ref of rep.orphanedRefs) {
+                console.log(`  ${pc.red(ref.key)} ${pc.gray(`at ${ref.file}:${ref.line}:${ref.column}`)}`);
+              }
+            }
+            if (rep.dynamicRefs.length > 0) {
+              console.log(pc.yellow(`Found ${rep.dynamicRefs.length} dynamic accesses (cannot be statically verified):`));
+              for (const d of rep.dynamicRefs) {
+                console.log(`  ${pc.gray(`${d.file}:${d.line}`)} ${pc.red(d.snippet)}`);
+              }
+            }
+            if (options.strict && rep.unusedSchemaKeys.length > 0) {
+              console.log(pc.yellow(`Found ${rep.unusedSchemaKeys.length} unused schema entries:`));
+              for (const key of rep.unusedSchemaKeys) {
+                console.log(`  ${pc.red(key)}`);
+              }
+            }
+          }
         }
-        const { result, report } = rep;
-        if (result.orphanedRefs.length > 0 || report.dynamic.length > 0 || (options.strict && result.unusedSchemaKeys.length > 0)) {
-          console.log(pc.magenta(`\n📦 ${rep.package}`));
-          printedErrors = true;
-          
-          if (result.orphanedRefs.length > 0) {
-            console.log(pc.yellow(`Found ${result.orphanedRefs.length} orphaned references (not in schema):`));
-            for (const ref of result.orphanedRefs) {
-              console.log(`  ${pc.red(ref.key)} ${pc.gray(`at ${ref.file}:${ref.line}:${ref.column}`)}`);
-            }
-          }
-          if (report.dynamic.length > 0) {
-            console.log(pc.yellow(`Found ${report.dynamic.length} dynamic accesses (cannot be statically verified):`));
-            for (const d of report.dynamic) {
-              console.log(`  ${pc.gray(`${d.file}:${d.line}`)} ${pc.red(d.snippet)}`);
-            }
-          }
-          if (options.strict && result.unusedSchemaKeys.length > 0) {
-            console.log(pc.yellow(`Found ${result.unusedSchemaKeys.length} unused schema entries:`));
-            for (const key of result.unusedSchemaKeys) {
-              console.log(`  ${pc.red(key)}`);
-            }
-          }
+
+        if (!printedErrors) {
+          console.log(pc.green("✔ No environment contract violations found in any workspace package."));
         }
       }
 
-      if (!printedErrors) {
-        console.log(pc.green("✔ No environment contract violations found in any workspace package."));
-      }
-
-      return hasErrors ? 1 : 0;
+      return { code: hasErrors ? 1 : 0, data: allReports };
     }
 
     // Single mode
@@ -108,12 +119,12 @@ export async function runScan(
     const include = options.include || config.scan?.include;
     const exclude = options.exclude || config.scan?.exclude;
 
-    if (!options.json) {
+    if (!options.json && !options.silent) {
       console.log(pc.cyan(`Scanning source in ${rootDir}...`));
     }
     const [schema, report] = await Promise.all([
       loadSchema(schemaPath),
-      scanSource(rootDir, { include, exclude }),
+      scanSource(rootDir, include),
     ]);
 
     const result = diff(schema, [], report.references, {
@@ -121,44 +132,52 @@ export async function runScan(
       ignoreKeys: config.ignoreKeys,
     });
 
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2));
-      return (result.orphanedRefs.length === 0 && (!options.strict || result.unusedSchemaKeys.length === 0)) ? 0 : 1;
+    const data = {
+      orphanedRefs: result.orphanedRefs,
+      unusedSchemaKeys: result.unusedSchemaKeys,
+      dynamicRefs: report.dynamic,
+    };
+
+    if (options.json && !options._internal) {
+      console.log(JSON.stringify(data, null, 2));
+      return { code: (result.orphanedRefs.length === 0 && (!options.strict || result.unusedSchemaKeys.length === 0)) ? 0 : 1, data };
     }
 
-    if (result.orphanedRefs.length === 0 && report.dynamic.length === 0 && (!options.strict || result.unusedSchemaKeys.length === 0)) {
-      console.log(pc.green("✔ No environment contract violations found in code."));
-      return 0;
-    }
+    if (!options.json && !options.silent) {
+      if (result.orphanedRefs.length === 0 && report.dynamic.length === 0 && (!options.strict || result.unusedSchemaKeys.length === 0)) {
+        console.log(pc.green("✔ No environment contract violations found in code."));
+        return { code: 0, data };
+      }
 
-    if (result.orphanedRefs.length > 0) {
-      console.log(pc.yellow(`\nFound ${result.orphanedRefs.length} orphaned references (not in schema):`));
-      for (const ref of result.orphanedRefs) {
-        console.log(`  ${pc.red(ref.key)} ${pc.gray(`at ${ref.file}:${ref.line}:${ref.column}`)}`);
+      if (result.orphanedRefs.length > 0) {
+        console.log(pc.yellow(`\nFound ${result.orphanedRefs.length} orphaned references (not in schema):`));
+        for (const ref of result.orphanedRefs) {
+          console.log(`  ${pc.red(ref.key)} ${pc.gray(`at ${ref.file}:${ref.line}:${ref.column}`)}`);
+        }
+      }
+
+      if (report.dynamic.length > 0) {
+        console.log(pc.yellow(`\nFound ${report.dynamic.length} dynamic accesses (cannot be statically verified):`));
+        for (const d of report.dynamic) {
+          console.log(`  ${pc.gray(`${d.file}:${d.line}`)} ${pc.red(d.snippet)}`);
+        }
+      }
+
+      if (options.strict && result.unusedSchemaKeys.length > 0) {
+        console.log(pc.yellow(`\nFound ${result.unusedSchemaKeys.length} unused schema entries:`));
+        for (const key of result.unusedSchemaKeys) {
+          console.log(`  ${pc.red(key)}`);
+        }
       }
     }
 
-    if (report.dynamic.length > 0) {
-      console.log(pc.yellow(`\nFound ${report.dynamic.length} dynamic accesses (cannot be statically verified):`));
-      for (const d of report.dynamic) {
-        console.log(`  ${pc.gray(`${d.file}:${d.line}`)} ${pc.red(d.snippet)}`);
-      }
-    }
-
-    if (options.strict && result.unusedSchemaKeys.length > 0) {
-      console.log(pc.yellow(`\nFound ${result.unusedSchemaKeys.length} unused schema entries:`));
-      for (const key of result.unusedSchemaKeys) {
-        console.log(`  ${pc.red(key)}`);
-      }
-    }
-
-    return 1;
+    return { code: (result.orphanedRefs.length === 0 && (!options.strict || result.unusedSchemaKeys.length === 0)) ? 0 : 1, data };
   } catch (error: any) {
-    if (options.json) {
+    if (options.json && !options._internal) {
       console.log(JSON.stringify({ error: error.message }));
-    } else {
+    } else if (!options.json && !options.silent) {
       console.error(pc.red(`✖ Scan failed: ${error.message}`));
     }
-    return 2;
+    return { code: 2, data: { error: error.message } };
   }
 }

@@ -14,7 +14,7 @@ import type { Config } from "../config.js";
 export async function runSync(
   options: { target?: string; yes?: boolean; check?: boolean; watch?: boolean; workspace?: boolean; silent?: boolean; cwd?: string; schema?: string },
   config: Config = {}
-) {
+): Promise<{ code: number; data?: any }> {
   const cwd = options.cwd || process.cwd();
   const isWorkspace = options.workspace;
 
@@ -22,11 +22,12 @@ export async function runSync(
     const packages = await findWorkspacePackages(cwd);
     if (packages.length === 0) {
       if (!options.silent) console.log(pc.yellow("No workspace packages found."));
-      return 0;
+      return { code: 0, data: [] };
     }
 
     let hasErrors = false;
     const schemasToWatch: { path: string, pkgDir: string, targetExampleFile: string }[] = [];
+    const allData: any[] = [];
 
     if (!options.silent) console.log(pc.cyan(`Found ${packages.length} packages in workspace.`));
 
@@ -37,8 +38,9 @@ export async function runSync(
       const exampleFile = options.target ? path.resolve(cwd, options.target) : (pkgConfig.exampleFile ? path.resolve(pkg.dir, pkgConfig.exampleFile) : path.join(pkg.dir, ".env.example"));
 
       if (!options.silent) console.log(pc.gray(`\nSyncing package: ${pkg.dir}`));
-      const code = await executeSync(schemaPath, exampleFile, options);
+      const { code, data } = await executeSync(schemaPath, exampleFile, options);
       if (code !== 0) hasErrors = true;
+      allData.push({ package: pkg.dir, ...data });
 
       schemasToWatch.push({ path: schemaPath, pkgDir: pkg.dir, targetExampleFile: exampleFile });
     }
@@ -63,17 +65,17 @@ export async function runSync(
           if (!options.silent) console.error(pc.red(`✖ Failed to watch file ${target.path}: ${error.message}`));
         }
       }
-      return hasErrors ? 1 : 0;
+      return { code: hasErrors ? 1 : 0, data: allData };
     }
 
-    return hasErrors ? 1 : 0;
+    return { code: hasErrors ? 1 : 0, data: allData };
   }
 
   // Single mode
   const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : path.resolve(cwd, "src/env.ts"));
   const exampleFile = options.target ? path.resolve(cwd, options.target) : (config.exampleFile ? path.resolve(cwd, config.exampleFile) : path.resolve(cwd, ".env.example"));
 
-  const initialCode = await executeSync(schemaPath, exampleFile, options);
+  const { code, data } = await executeSync(schemaPath, exampleFile, options);
 
   if (options.watch) {
     if (!options.silent) console.log(pc.cyan(`\nWatching ${schemaPath} for changes...`));
@@ -93,14 +95,14 @@ export async function runSync(
       }
     } catch (error: any) {
       if (!options.silent) console.error(pc.red(`✖ Failed to watch file: ${error.message}`));
-      return 2;
+      return { code: 2, data: { syncDrift: false, error: error.message } };
     }
   }
 
-  return initialCode;
+  return { code, data };
 }
 
-async function executeSync(schemaPath: string, exampleFile: string, options: any) {
+async function executeSync(schemaPath: string, exampleFile: string, options: any): Promise<{ code: number; data: any }> {
   try {
     const schema = await loadSchema(schemaPath);
     const newManagedContent = generateExample(schema);
@@ -116,12 +118,12 @@ async function executeSync(schemaPath: string, exampleFile: string, options: any
 
     if (updatedContent === existingContent) {
       if (!options.watch && !options.silent) console.log(pc.green(`✔ ${exampleFile} is already up to date with the schema.`));
-      return 0;
+      return { code: 0, data: { syncDrift: false } };
     }
 
     if (options.check) {
       if (!options.silent) console.error(pc.red(`✖ Drift detected in ${exampleFile}. Run \`env-contract sync\` to update.`));
-      return 1;
+      return { code: 1, data: { syncDrift: true } };
     }
 
     if (!options.yes && !options.silent) {
@@ -130,15 +132,15 @@ async function executeSync(schemaPath: string, exampleFile: string, options: any
       const accepted = await confirm(pc.cyan(`Apply these changes to ${exampleFile}? (y/N)`));
       if (!accepted) {
         console.log(pc.gray("Canceled by user."));
-        return 0;
+        return { code: 0, data: { syncDrift: true } };
       }
     }
 
     await writeAtomically(exampleFile, updatedContent);
     if (!options.silent) console.log(pc.green(`✔ Successfully updated ${exampleFile}.`));
-    return 0;
+    return { code: 0, data: { syncDrift: true } };
   } catch (error: any) {
     if (!options.silent) console.error(pc.red(`✖ Sync failed: ${error.message}`));
-    return 2;
+    return { code: 2, data: { syncDrift: false, error: error.message } };
   }
 }

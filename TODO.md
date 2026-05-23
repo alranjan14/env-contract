@@ -36,11 +36,11 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Pass resolved config into `runSync`, `runScan`, `runCheck`, and `runInstall`.
   - [x] Add tests proving CLI flags override config values.
 
-- [ ] Make `check` match the spec.
-  - [ ] Do not force unused-schema detection by default.
-  - [ ] Add `check --strict` if strict unused-key checks are desired.
-  - [ ] Include sync drift, orphaned references, dynamic references, and unused schema keys in JSON output.
-  - [ ] Preserve exit codes: `0` healthy, `1` drift, `2` configuration/runtime error.
+- [x] Make `check` match the spec.
+  - [x] Do not force unused-schema detection by default.
+  - [x] Add `check --strict` if strict unused-key checks are desired.
+  - [x] Include sync drift, orphaned references, dynamic references, and unused schema keys in JSON output.
+  - [x] Preserve exit codes: `0` healthy, `1` drift, `2` configuration/runtime error.
 
 - [ ] Fix TypeScript and lint failures.
   - [ ] Resolve `exactOptionalPropertyTypes` errors in `check.ts` and `scan.ts`.

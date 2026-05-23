@@ -22,7 +22,7 @@ cli
     const cwd = options.cwd || process.cwd();
     const config = await resolveConfig(cwd, options.config);
     const { runSync } = await import("./commands/sync.js");
-    const code = await runSync({ ...options, cwd }, config);
+    const { code } = await runSync({ ...options, cwd }, config);
     if (code !== 0) process.exit(code);
   });
 
@@ -41,7 +41,7 @@ cli
     const exclude = options.exclude ? (Array.isArray(options.exclude) ? options.exclude : [options.exclude]) : undefined;
     
     const { runScan } = await import("./commands/scan.js");
-    const code = await runScan({ ...options, cwd, include, exclude }, config);
+    const { code } = await runScan({ ...options, cwd, include, exclude }, config);
     if (code !== 0) process.exit(code);
   });
 
@@ -53,7 +53,7 @@ cli
     const cwd = options.cwd || process.cwd();
     const config = await resolveConfig(cwd, options.config);
     const { runCheck } = await import("./commands/check.js");
-    const code = await runCheck({ ...options, cwd }, config);
+    const { code } = await runCheck({ ...options, cwd }, config);
     if (code !== 0) process.exit(code);
   });
 
@@ -65,7 +65,7 @@ cli
     const cwd = options.cwd || process.cwd();
     const config = await resolveConfig(cwd, options.config);
     const { runInstall } = await import("./commands/install.js");
-    const code = await runInstall({ ...options, cwd }, config);
+    const { code } = await runInstall({ ...options, cwd }, config);
     if (code !== 0) process.exit(code);
   });
 

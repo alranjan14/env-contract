@@ -18,7 +18,7 @@ async function ask(question: string): Promise<boolean> {
   });
 }
 
-export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: string }, config: Config = {}) {
+export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: string }, config: Config = {}): Promise<{ code: number }> {
   const hookName = options.hook || "pre-commit";
   const cwd = options.cwd || process.cwd();
   const rootDir = config.rootDir ? path.resolve(cwd, config.rootDir) : cwd;
@@ -113,5 +113,5 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
   console.log(pc.cyan(`      - name: Check Environment Contract\n        run: pnpm env-contract check`));
   console.log();
 
-  return 0;
+  return { code: 0 };
 }

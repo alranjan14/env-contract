@@ -123,4 +123,61 @@ export const schema = z.object({
     // Ensure the default example file was NOT created
     await expect(fs.access(path.join(configDir, ".env.default"))).rejects.toThrow();
   });
+
+  it("should output JSON for check command", async () => {
+    const checkDir = path.join(TMP_DIR, "check-json");
+    await fs.mkdir(path.join(checkDir, "src"), { recursive: true });
+    
+    // Create schema file
+    await fs.writeFile(path.join(checkDir, "src/env.ts"), `
+      import { z } from "zod";
+      export const schema = z.object({ CHECK_VAR: z.string() });
+    `);
+
+    // Create source file using the var (no dynamic, no orphaned)
+    await fs.writeFile(path.join(checkDir, "src/index.ts"), `
+      console.log(process.env.CHECK_VAR);
+    `);
+
+    // Run check --json
+    let stdout = "";
+    try {
+      stdout = execSync(`node ${CLI_PATH} check --json`, {
+        cwd: checkDir,
+        env: { ...process.env },
+        stdio: "pipe"
+      }).toString();
+    } catch (e: any) {
+      stdout = e.stdout.toString(); // Will exit 1 because of syncDrift (no .env.example)
+    }
+
+    const report = JSON.parse(stdout);
+    expect(report).toHaveProperty("syncDrift", true); // No example file exists
+    expect(report).toHaveProperty("orphanedRefs");
+    expect(report.orphanedRefs).toHaveLength(0);
+    expect(report).toHaveProperty("unusedSchemaKeys");
+    expect(report.unusedSchemaKeys).toHaveLength(0);
+    expect(report).toHaveProperty("dynamicRefs");
+    expect(report.dynamicRefs).toHaveLength(0);
+  });
+
+  it("should not fail on unused schema keys by default", async () => {
+    const strictDir = path.join(TMP_DIR, "check-strict");
+    await fs.mkdir(path.join(strictDir, "src"), { recursive: true });
+    
+    // Schema with unused variable
+    await fs.writeFile(path.join(strictDir, "src/env.ts"), `
+      import { z } from "zod";
+      export const schema = z.object({ UNUSED_VAR: z.string() });
+    `);
+
+    // Run sync to ensure no sync drift
+    execSync(`node ${CLI_PATH} sync --yes`, { cwd: strictDir });
+
+    // Run check without strict (should pass)
+    expect(() => execSync(`node ${CLI_PATH} check`, { cwd: strictDir })).not.toThrow();
+
+    // Run check --strict (should fail)
+    expect(() => execSync(`node ${CLI_PATH} check --strict`, { cwd: strictDir })).toThrow();
+  });
 });
