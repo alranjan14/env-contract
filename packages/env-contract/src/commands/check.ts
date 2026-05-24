@@ -18,8 +18,6 @@ export async function runCheck(options: { strict?: boolean; json?: boolean; work
   // 2. Check scan drift
   const { code: scanCode, data: scanData } = await runScan({ 
     ...options,
-    strict: options.strict,
-    json: options.json,
     silent: !!options.json,
     _internal: true
   }, config);

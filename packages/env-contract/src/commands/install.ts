@@ -26,7 +26,7 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
   console.log(pc.bold("env-contract setup helper\n"));
 
   let hookManager: "husky" | "simple-git-hooks" | "lefthook" | null = null;
-  let packageJsonPath = path.join(rootDir, "package.json");
+  const packageJsonPath = path.join(rootDir, "package.json");
   let packageJson: any = null;
 
   try {
@@ -37,7 +37,7 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
     if (deps["husky"]) hookManager = "husky";
     else if (deps["simple-git-hooks"]) hookManager = "simple-git-hooks";
     else if (deps["lefthook"]) hookManager = "lefthook";
-  } catch (e) {
+  } catch {
     // package.json might not exist, ignore
   }
 

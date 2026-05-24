@@ -23,7 +23,7 @@ export async function loadConfig(configPath: string): Promise<Config> {
     const absolutePath = path.isAbsolute(configPath) ? configPath : path.resolve(process.cwd(), configPath);
     const mod = await jiti.import(absolutePath, { default: true }) as any;
     return mod?.default || mod || {};
-  } catch (e) {
+  } catch {
     return {};
   }
 }
@@ -39,7 +39,7 @@ export async function resolveConfig(cwd: string, explicitConfigPath?: string): P
     try {
       await fs.access(configPath);
       return await loadConfig(configPath);
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   try {
@@ -49,7 +49,7 @@ export async function resolveConfig(cwd: string, explicitConfigPath?: string): P
     if (pkg["env-contract"]) {
       return pkg["env-contract"];
     }
-  } catch {}
+  } catch { /* ignore */ }
 
   return {};
 }

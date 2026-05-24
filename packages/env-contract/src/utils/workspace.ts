@@ -34,7 +34,9 @@ export async function findWorkspacePackages(rootDir: string): Promise<WorkspaceP
           await fs.access(path.join(dir, `env-contract.config${ext}`));
           hasConfig = true;
           break;
-        } catch {}
+        } catch {
+          // Intentional ignore: Config file with this extension not found, try next
+        }
       }
 
       if (!hasConfig) {
@@ -44,10 +46,17 @@ export async function findWorkspacePackages(rootDir: string): Promise<WorkspaceP
           if (pkg["env-contract"]) {
             hasConfig = true;
           }
-        } catch {}
+        } catch {
+          // Intentional ignore: package.json is missing, unreadable, or invalid JSON
+        }
       }
 
-      try { await fs.access(path.join(dir, "src/env.ts")); hasEnv = true; } catch {}
+      try {
+        await fs.access(path.join(dir, "src/env.ts"));
+        hasEnv = true;
+      } catch {
+        // Intentional ignore: src/env.ts not found
+      }
 
       if (hasConfig) {
         packages.push({ dir, type: "config" });

@@ -1,10 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
-import { runSync } from "../src/commands/sync.js";
-import fs from "node:fs/promises";
-import path from "node:path";
-import * as promptModule from "../src/utils/prompt.js";
-import { generateExample } from "../src/core/generate-example.js";
-import { loadSchema } from "../src/core/load-schema.js";
+import { describe, it, vi } from "vitest";
 
 vi.mock("../src/utils/prompt.js", () => ({
   confirm: vi.fn(),

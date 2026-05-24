@@ -6,6 +6,26 @@ import { diff } from "../core/diff.js";
 import { findWorkspacePackages } from "../utils/workspace.js";
 import { resolveConfig } from "../config.js";
 import type { Config } from "../config.js";
+import type { Reference, DynamicReference, ScanReport } from "../core/scan-source.js";
+import type { DiffReport } from "../core/diff.js";
+
+type WorkspaceReport = {
+  package: string;
+  orphanedRefs: Reference[];
+  unusedSchemaKeys: string[];
+  dynamicRefs: DynamicReference[];
+  _reportRaw: ScanReport;
+  _resultRaw: DiffReport;
+  error?: undefined;
+} | {
+  package: string;
+  error: string;
+  orphanedRefs?: undefined;
+  unusedSchemaKeys?: undefined;
+  dynamicRefs?: undefined;
+  _reportRaw?: undefined;
+  _resultRaw?: undefined;
+};
 
 export async function runScan(
   options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string; include?: string[]; exclude?: string[]; silent?: boolean; _internal?: boolean },
@@ -24,7 +44,7 @@ export async function runScan(
 
       if (!options.json && !options.silent) console.log(pc.cyan(`Scanning ${packages.length} packages in workspace...`));
 
-      const allReports = [];
+      const allReports: WorkspaceReport[] = [];
       let hasErrors = false;
 
       for (const pkg of packages) {
@@ -33,7 +53,6 @@ export async function runScan(
         const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts"));
         const rootDir = pkgConfig.rootDir ? path.resolve(pkg.dir, pkgConfig.rootDir) : path.join(pkg.dir, "src");
         const include = options.include || pkgConfig.scan?.include;
-        const exclude = options.exclude || pkgConfig.scan?.exclude;
 
         try {
           const [schema, report] = await Promise.all([
@@ -43,7 +62,7 @@ export async function runScan(
 
           const result = diff(schema, [], report.references, {
             ...(options.strict !== undefined ? { strict: options.strict } : {}),
-            ignoreKeys: pkgConfig.ignoreKeys,
+            ...(pkgConfig.ignoreKeys !== undefined ? { ignoreKeys: pkgConfig.ignoreKeys } : {}),
           });
 
           const data = {
@@ -66,7 +85,8 @@ export async function runScan(
 
       if (options.json && !options._internal) {
         console.log(JSON.stringify(allReports.map(r => {
-          const { _reportRaw, _resultRaw, ...rest } = r;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { _reportRaw: _, _resultRaw: __, ...rest } = r;
           return rest;
         }), null, 2));
         return { code: hasErrors ? 1 : 0, data: allReports };
@@ -80,25 +100,30 @@ export async function runScan(
             printedErrors = true;
             continue;
           }
-          if (rep.orphanedRefs.length > 0 || rep.dynamicRefs.length > 0 || (options.strict && rep.unusedSchemaKeys.length > 0)) {
+
+          const orphanedRefs = rep.orphanedRefs!;
+          const dynamicRefs = rep.dynamicRefs!;
+          const unusedSchemaKeys = rep.unusedSchemaKeys!;
+
+          if (orphanedRefs.length > 0 || dynamicRefs.length > 0 || (options.strict && unusedSchemaKeys.length > 0)) {
             console.log(pc.magenta(`\n📦 ${rep.package}`));
             printedErrors = true;
             
-            if (rep.orphanedRefs.length > 0) {
-              console.log(pc.yellow(`Found ${rep.orphanedRefs.length} orphaned references (not in schema):`));
-              for (const ref of rep.orphanedRefs) {
+            if (orphanedRefs.length > 0) {
+              console.log(pc.yellow(`Found ${orphanedRefs.length} orphaned references (not in schema):`));
+              for (const ref of orphanedRefs) {
                 console.log(`  ${pc.red(ref.key)} ${pc.gray(`at ${ref.file}:${ref.line}:${ref.column}`)}`);
               }
             }
-            if (rep.dynamicRefs.length > 0) {
-              console.log(pc.yellow(`Found ${rep.dynamicRefs.length} dynamic accesses (cannot be statically verified):`));
-              for (const d of rep.dynamicRefs) {
+            if (dynamicRefs.length > 0) {
+              console.log(pc.yellow(`Found ${dynamicRefs.length} dynamic accesses (cannot be statically verified):`));
+              for (const d of dynamicRefs) {
                 console.log(`  ${pc.gray(`${d.file}:${d.line}`)} ${pc.red(d.snippet)}`);
               }
             }
-            if (options.strict && rep.unusedSchemaKeys.length > 0) {
-              console.log(pc.yellow(`Found ${rep.unusedSchemaKeys.length} unused schema entries:`));
-              for (const key of rep.unusedSchemaKeys) {
+            if (options.strict && unusedSchemaKeys.length > 0) {
+              console.log(pc.yellow(`Found ${unusedSchemaKeys.length} unused schema entries:`));
+              for (const key of unusedSchemaKeys) {
                 console.log(`  ${pc.red(key)}`);
               }
             }
@@ -117,7 +142,6 @@ export async function runScan(
     const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : path.join(cwd, "src/env.ts"));
     const rootDir = config.rootDir ? path.resolve(cwd, config.rootDir) : path.join(cwd, "src");
     const include = options.include || config.scan?.include;
-    const exclude = options.exclude || config.scan?.exclude;
 
     if (!options.json && !options.silent) {
       console.log(pc.cyan(`Scanning source in ${rootDir}...`));
@@ -129,7 +153,7 @@ export async function runScan(
 
     const result = diff(schema, [], report.references, {
       ...(options.strict !== undefined ? { strict: options.strict } : {}),
-      ignoreKeys: config.ignoreKeys,
+      ...(config.ignoreKeys !== undefined ? { ignoreKeys: config.ignoreKeys } : {}),
     });
 
     const data = {

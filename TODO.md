@@ -42,12 +42,12 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Include sync drift, orphaned references, dynamic references, and unused schema keys in JSON output.
   - [x] Preserve exit codes: `0` healthy, `1` drift, `2` configuration/runtime error.
 
-- [ ] Fix TypeScript and lint failures.
-  - [ ] Resolve `exactOptionalPropertyTypes` errors in `check.ts` and `scan.ts`.
-  - [ ] Add explicit types for workspace scan reports instead of relying on broad inference.
-  - [ ] Replace empty catches in workspace discovery with intentional ignored-error handling.
-  - [ ] Fix `prefer-const` and unused variable warnings.
-  - [ ] Update `prepublishOnly` to run `typecheck`, `lint`, `build`, and `test`.
+- [x] Fix TypeScript and lint failures.
+  - [x] Resolve `exactOptionalPropertyTypes` errors in `check.ts` and `scan.ts`.
+  - [x] Add explicit types for workspace scan reports instead of relying on broad inference.
+  - [x] Replace empty catches in workspace discovery with intentional ignored-error handling.
+  - [x] Fix `prefer-const` and unused variable warnings.
+  - [x] Update `prepublishOnly` to run `typecheck`, `lint`, `build`, and `test`.
 
 - [ ] Fix package contents before publishing.
   - [ ] Ensure `LICENSE` is included in the published `env-contract` package.
