@@ -1,6 +1,6 @@
 {
   "name": "env-contract",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Keep your env schema, .env.example, and process.env references honest with each other.",
   "keywords": [
     "env",
@@ -47,6 +47,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
+    "check-package": "vitest run tests/package-contents.test.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run typecheck && npm run lint && npm run build && npm run test"

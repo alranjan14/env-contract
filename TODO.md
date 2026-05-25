@@ -49,11 +49,11 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Fix `prefer-const` and unused variable warnings.
   - [x] Update `prepublishOnly` to run `typecheck`, `lint`, `build`, and `test`.
 
-- [ ] Fix package contents before publishing.
-  - [ ] Ensure `LICENSE` is included in the published `env-contract` package.
-  - [ ] Ensure `CHANGELOG.md` exists and is included in the package.
-  - [ ] Run `npm pack --dry-run` and verify the tarball contains only intended files.
-  - [ ] Add a script or CI step for package content inspection.
+- [x] Fix package contents before publishing.
+  - [x] Ensure `LICENSE` is included in the published `env-contract` package.
+  - [x] Ensure `CHANGELOG.md` exists and is included in the package.
+  - [x] Run `npm pack --dry-run` and verify the tarball contains only intended files.
+  - [x] Add a script or CI step for package content inspection.
 
 - [ ] Update supported runtime versions.
   - [ ] Revisit the Node support policy now that Node 18 and Node 20 are EOL as of 2026-05-20.
