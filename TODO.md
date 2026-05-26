@@ -61,9 +61,9 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Update CI and release workflows to test/use Node 22 and Node 24.
   - [x] Ensure the release workflow uses an npm version compatible with Trusted Publishing.
 
-- [ ] Clean up incorrect status claims.
-  - [ ] Remove claims that v0.1 and v0.2 are fully implemented until the release gates pass.
-  - [ ] Remove launch/community tasks marked complete unless they have actually happened.
+- [x] Clean up incorrect status claims.
+  - [x] Remove claims that v0.1 and v0.2 are fully implemented until the release gates pass.
+  - [x] Remove launch/community tasks marked complete unless they have actually happened.
 
 ---
 
