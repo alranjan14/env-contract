@@ -55,11 +55,11 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Run `npm pack --dry-run` and verify the tarball contains only intended files.
   - [x] Add a script or CI step for package content inspection.
 
-- [ ] Update supported runtime versions.
-  - [ ] Revisit the Node support policy now that Node 18 and Node 20 are EOL as of 2026-05-20.
-  - [ ] Update `engines.node` to the actual supported range, likely Node 22+.
-  - [ ] Update CI and release workflows to test/use Node 22 and Node 24.
-  - [ ] Ensure the release workflow uses an npm version compatible with Trusted Publishing.
+- [x] Update supported runtime versions.
+  - [x] Revisit the Node support policy now that Node 18 and Node 20 are EOL as of 2026-05-20.
+  - [x] Update `engines.node` to the actual supported range, likely Node 22+.
+  - [x] Update CI and release workflows to test/use Node 22 and Node 24.
+  - [x] Ensure the release workflow uses an npm version compatible with Trusted Publishing.
 
 - [ ] Clean up incorrect status claims.
   - [ ] Remove claims that v0.1 and v0.2 are fully implemented until the release gates pass.
