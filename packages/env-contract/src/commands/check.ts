@@ -29,13 +29,21 @@ export async function runCheck(options: { strict?: boolean; json?: boolean; work
         const syncPkg = (Array.isArray(syncData) ? syncData : []).find(s => s.package === scanPkg.package);
         return {
           ...scanPkg,
-          syncDrift: syncPkg ? syncPkg.syncDrift : false
+          syncDrift: syncPkg ? syncPkg.syncDrift : false,
+          exampleDrift: {
+            missingInExample: syncPkg ? syncPkg.missingInExample || [] : [],
+            extraInExample: syncPkg ? syncPkg.extraInExample || [] : []
+          }
         };
       });
     } else {
       combined = {
         ...(scanData || {}),
-        syncDrift: syncData?.syncDrift || false
+        syncDrift: syncData?.syncDrift || false,
+        exampleDrift: {
+          missingInExample: syncData?.missingInExample || [],
+          extraInExample: syncData?.extraInExample || []
+        }
       };
     }
     console.log(JSON.stringify(combined, null, 2));

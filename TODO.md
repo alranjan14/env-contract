@@ -69,11 +69,11 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
 
 ## P1 - Core Product Correctness
 
-- [ ] Implement real `.env.example` drift detection.
-  - [ ] Extract keys only from the managed block.
-  - [ ] Compare schema keys, managed example keys, and scanned references in `check`.
-  - [ ] Report missing and extra managed-block keys separately.
-  - [ ] Add tests for absent markers, malformed markers, duplicate keys, comments, and manual content outside the block.
+- [x] Implement real `.env.example` drift detection.
+  - [x] Extract keys only from the managed block.
+  - [x] Compare schema keys, managed example keys, and scanned references in `check`.
+  - [x] Report missing and extra managed-block keys separately.
+  - [x] Add tests for absent markers, malformed markers, duplicate keys, comments, and manual content outside the block.
 
 - [ ] Harden AST scanning.
   - [ ] Replace suffix matching with real include/exclude pattern support or clearly document the reduced matcher.
