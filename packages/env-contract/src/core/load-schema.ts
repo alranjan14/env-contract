@@ -21,8 +21,14 @@ export async function loadSchema(schemaPath: string, cwd: string = process.cwd()
   try {
     const mod = await jiti.import(absolutePath) as any;
     
-    // 1. Try to find an explicit loader match in any export
-    for (const key of Object.keys(mod)) {
+    // Sort keys to prioritize explicit naming conventions
+    const keys = Object.keys(mod);
+    const prioritized = ["envSchema", "env", "default"];
+    const otherKeys = keys.filter((k) => !prioritized.includes(k));
+    const sortedKeys = [...prioritized.filter((k) => keys.includes(k)), ...otherKeys];
+
+    // 1. Try to find an explicit loader match in prioritized exports
+    for (const key of sortedKeys) {
       const exported = mod[key];
       for (const loader of registeredLoaders) {
         if (loader.matches(exported)) {
@@ -31,7 +37,7 @@ export async function loadSchema(schemaPath: string, cwd: string = process.cwd()
       }
     }
 
-    // 2. Fallback: search for common naming conventions if no structural match found
+    // 2. Fallback: search for common naming conventions if no structural match found in exports list
     if (mod.env) {
       for (const loader of registeredLoaders) {
         if (loader.matches(mod.env)) {

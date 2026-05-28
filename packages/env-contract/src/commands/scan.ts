@@ -8,6 +8,7 @@ import { resolveConfig } from "../config.js";
 import type { Config } from "../config.js";
 import type { Reference, DynamicReference, ScanReport } from "../core/scan-source.js";
 import type { DiffReport } from "../core/diff.js";
+import { findSchemaFile } from "../utils/file.js";
 
 type WorkspaceReport = {
   package: string;
@@ -50,7 +51,7 @@ export async function runScan(
       for (const pkg of packages) {
         const pkgConfig = await resolveConfig(pkg.dir);
         
-        const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts"));
+        const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : await findSchemaFile(pkg.dir));
         const rootDir = pkgConfig.rootDir ? path.resolve(pkg.dir, pkgConfig.rootDir) : path.join(pkg.dir, "src");
         const include = options.include || pkgConfig.scan?.include;
         const exclude = options.exclude || pkgConfig.scan?.exclude;
@@ -150,7 +151,7 @@ export async function runScan(
     }
 
     // Single mode
-    const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : path.join(cwd, "src/env.ts"));
+    const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : await findSchemaFile(cwd));
     const rootDir = config.rootDir ? path.resolve(cwd, config.rootDir) : path.join(cwd, "src");
     const include = options.include || config.scan?.include;
     const exclude = options.exclude || config.scan?.exclude;

@@ -110,6 +110,55 @@ npx env-contract sync --workspace --watch
 npx env-contract install
 ```
 
+## Supported Schema Libraries
+
+`env-contract` automatically detects and parses the following validators/schemas:
+
+*   **Zod** (Full support for Zod v3 and v4)
+*   **t3-env** (`@t3-oss/env-core` / `@t3-oss/env-nextjs`)
+*   **Valibot** (⚠️ Experimental support)
+*   **ArkType** (⚠️ Experimental support)
+
+## Avoiding Validation Crashes during Introspection / Build
+
+When `env-contract` imports your schema file (e.g. `src/env.ts`), any immediate evaluation/validation that runs automatically at runtime can fail if required environment variables are not set (common in CI/CD pipelines or clean checkouts).
+
+To bypass runtime validation during builds or introspection, you can conditionally skip validation using the `SKIP_ENV_VALIDATION` environment variable.
+
+### Example Setup (Zod / t3-env)
+
+In your `src/env.ts` file, check for `process.env.SKIP_ENV_VALIDATION`:
+
+```typescript
+import { createEnv } from "@t3-oss/env-nextjs";
+import { z } from "zod";
+
+export const envSchema = z.object({
+  DATABASE_URL: z.string().url(),
+});
+
+export const env = createEnv({
+  server: {
+    DATABASE_URL: z.string().url(),
+  },
+  client: {
+    NEXT_PUBLIC_API_URL: z.string().url(),
+  },
+  runtimeEnv: {
+    DATABASE_URL: process.env.DATABASE_URL,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  },
+  // Skip environment validation during build/introspection
+  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+});
+```
+
+Then, run your check with:
+
+```bash
+SKIP_ENV_VALIDATION=1 npx env-contract check
+```
+
 ## What it doesn't do
 
 *   Doesn't validate values (your schema does that)

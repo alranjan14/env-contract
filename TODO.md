@@ -86,14 +86,14 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Make reported file paths relative to the configured cwd.
   - [x] Add golden tests for every scanner pattern listed in the spec.
 
-- [ ] Improve schema loading reliability.
-  - [ ] Auto-detect `src/env.ts`, `src/env/index.ts`, and `env.ts`.
-  - [ ] Prefer explicit exported schema names such as `envSchema` for non-t3 projects.
-  - [ ] Document how users can avoid runtime validation crashes during introspection.
-  - [ ] Add fixtures for Zod v3 and Zod v4 internals.
-  - [ ] Add fixtures for t3-env server/client scopes and client prefixes.
-  - [ ] Decide whether Valibot and ArkType stay in v0.1 or move back to roadmap status.
-  - [ ] If Valibot/ArkType stay, mark support as experimental until tested against realistic schemas.
+- [x] Improve schema loading reliability.
+  - [x] Auto-detect `src/env.ts`, `src/env/index.ts`, and `env.ts`.
+  - [x] Prefer explicit exported schema names such as `envSchema` for non-t3 projects.
+  - [x] Document how users can avoid runtime validation crashes during introspection.
+  - [x] Add fixtures for Zod v3 and Zod v4 internals.
+  - [x] Add fixtures for t3-env server/client scopes and client prefixes.
+  - [x] Decide whether Valibot and ArkType stay in v0.1 or move back to roadmap status.
+  - [x] If Valibot/ArkType stay, mark support as experimental until tested against realistic schemas.
 
 - [ ] Tighten `.env.example` generation.
   - [ ] Confirm final ordering: server first, client second, alphabetical inside each group or declaration order.

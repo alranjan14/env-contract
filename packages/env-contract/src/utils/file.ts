@@ -9,3 +9,23 @@ export async function writeAtomically(filePath: string, content: string) {
   await fs.writeFile(tempPath, content, "utf-8");
   await fs.rename(tempPath, filePath);
 }
+
+export async function findSchemaFile(cwd: string): Promise<string> {
+  const candidates = [
+    path.join(cwd, "src/env.ts"),
+    path.join(cwd, "src/env/index.ts"),
+    path.join(cwd, "env.ts"),
+  ];
+
+  for (const c of candidates) {
+    try {
+      await fs.access(c);
+      return c;
+    } catch {
+      // ignore
+    }
+  }
+
+  // Fallback default
+  return path.join(cwd, "src/env.ts");
+}

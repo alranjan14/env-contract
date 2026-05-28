@@ -8,7 +8,7 @@ import { parseEnvKeys } from "../core/diff.js";
 import { findWorkspacePackages } from "../utils/workspace.js";
 import { confirm } from "../utils/prompt.js";
 import { showDiff } from "../utils/diff.js";
-import { writeAtomically } from "../utils/file.js";
+import { writeAtomically, findSchemaFile } from "../utils/file.js";
 import { resolveConfig } from "../config.js";
 import type { Config } from "../config.js";
 
@@ -35,7 +35,7 @@ export async function runSync(
     for (const pkg of packages) {
       const pkgConfig = await resolveConfig(pkg.dir);
       
-      const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts"));
+      const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : await findSchemaFile(pkg.dir));
       const exampleFile = options.target ? path.resolve(cwd, options.target) : (pkgConfig.exampleFile ? path.resolve(pkg.dir, pkgConfig.exampleFile) : path.join(pkg.dir, ".env.example"));
 
       if (!options.silent) console.log(pc.gray(`\nSyncing package: ${pkg.dir}`));
@@ -73,7 +73,7 @@ export async function runSync(
   }
 
   // Single mode
-  const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : path.resolve(cwd, "src/env.ts"));
+  const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : await findSchemaFile(cwd));
   const exampleFile = options.target ? path.resolve(cwd, options.target) : (config.exampleFile ? path.resolve(cwd, config.exampleFile) : path.resolve(cwd, ".env.example"));
 
   const { code, data } = await executeSync(schemaPath, exampleFile, options, config);
