@@ -53,11 +53,15 @@ export async function runScan(
         const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : path.join(pkg.dir, "src/env.ts"));
         const rootDir = pkgConfig.rootDir ? path.resolve(pkg.dir, pkgConfig.rootDir) : path.join(pkg.dir, "src");
         const include = options.include || pkgConfig.scan?.include;
+        const exclude = options.exclude || pkgConfig.scan?.exclude;
+        const scanOptions: { include?: string[]; exclude?: string[]; cwd?: string } = { cwd: pkg.dir };
+        if (include) scanOptions.include = include;
+        if (exclude) scanOptions.exclude = exclude;
 
         try {
           const [schema, report] = await Promise.all([
             loadSchema(schemaPath),
-            scanSource(rootDir, include),
+            scanSource(rootDir, scanOptions),
           ]);
 
           const result = diff(schema, [], report.references, {
@@ -104,11 +108,18 @@ export async function runScan(
           const orphanedRefs = rep.orphanedRefs!;
           const dynamicRefs = rep.dynamicRefs!;
           const unusedSchemaKeys = rep.unusedSchemaKeys!;
+          const warnings = rep._reportRaw?.warnings || [];
 
-          if (orphanedRefs.length > 0 || dynamicRefs.length > 0 || (options.strict && unusedSchemaKeys.length > 0)) {
+          if (orphanedRefs.length > 0 || dynamicRefs.length > 0 || (options.strict && unusedSchemaKeys.length > 0) || warnings.length > 0) {
             console.log(pc.magenta(`\n📦 ${rep.package}`));
             printedErrors = true;
             
+            if (warnings.length > 0) {
+              console.log(pc.yellow(`Found ${warnings.length} file parse warnings:`));
+              for (const w of warnings) {
+                console.log(`  ${pc.gray(w.file)}: ${pc.red(w.message)}`);
+              }
+            }
             if (orphanedRefs.length > 0) {
               console.log(pc.yellow(`Found ${orphanedRefs.length} orphaned references (not in schema):`));
               for (const ref of orphanedRefs) {
@@ -142,13 +153,17 @@ export async function runScan(
     const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : path.join(cwd, "src/env.ts"));
     const rootDir = config.rootDir ? path.resolve(cwd, config.rootDir) : path.join(cwd, "src");
     const include = options.include || config.scan?.include;
+    const exclude = options.exclude || config.scan?.exclude;
+    const scanOptions: { include?: string[]; exclude?: string[]; cwd?: string } = { cwd };
+    if (include) scanOptions.include = include;
+    if (exclude) scanOptions.exclude = exclude;
 
     if (!options.json && !options.silent) {
       console.log(pc.cyan(`Scanning source in ${rootDir}...`));
     }
     const [schema, report] = await Promise.all([
       loadSchema(schemaPath),
-      scanSource(rootDir, include),
+      scanSource(rootDir, scanOptions),
     ]);
 
     const result = diff(schema, [], report.references, {
@@ -160,6 +175,7 @@ export async function runScan(
       orphanedRefs: result.orphanedRefs,
       unusedSchemaKeys: result.unusedSchemaKeys,
       dynamicRefs: report.dynamic,
+      warnings: report.warnings,
     };
 
     if (options.json && !options._internal) {
@@ -168,7 +184,14 @@ export async function runScan(
     }
 
     if (!options.json && !options.silent) {
-      if (result.orphanedRefs.length === 0 && report.dynamic.length === 0 && (!options.strict || result.unusedSchemaKeys.length === 0)) {
+      if (report.warnings.length > 0) {
+        console.log(pc.yellow(`\nFound ${report.warnings.length} file parse warnings:`));
+        for (const w of report.warnings) {
+          console.log(`  ${pc.gray(w.file)}: ${pc.red(w.message)}`);
+        }
+      }
+
+      if (result.orphanedRefs.length === 0 && report.dynamic.length === 0 && report.warnings.length === 0 && (!options.strict || result.unusedSchemaKeys.length === 0)) {
         console.log(pc.green("✔ No environment contract violations found in code."));
         return { code: 0, data };
       }

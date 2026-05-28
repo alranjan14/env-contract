@@ -19,25 +19,114 @@ export interface DynamicReference {
 export interface ScanReport {
   references: Reference[];
   dynamic: DynamicReference[];
+  warnings: Array<{ file: string; message: string }>;
+}
+
+export function globToRegex(pattern: string): RegExp {
+  let normalized = pattern.replace(/\\/g, "/");
+  
+  if (normalized.startsWith("**/")) {
+    const restRegex = globToRegex(normalized.substring(3)).source.replace(/^\^|\$$/g, "");
+    return new RegExp(`^(?:^|.*/)${restRegex}$`);
+  }
+  
+  // Replace /**/ with a placeholder
+  normalized = normalized.replace(/\/\*\*\//g, "/__GLOBSTAR_DIR__/");
+  
+  let regStr = "";
+  let i = 0;
+  while (i < normalized.length) {
+    if (normalized.substring(i).startsWith("__GLOBSTAR_DIR__")) {
+      regStr += "(?:.*/)?";
+      i += "__GLOBSTAR_DIR__".length;
+      continue;
+    }
+    
+    const c = normalized[i];
+    if (c === undefined) break;
+    if (c === "*") {
+      if (normalized[i + 1] === "*") {
+        regStr += ".*";
+        i += 2;
+      } else {
+        regStr += "[^/]*";
+        i++;
+      }
+    } else if (c === "?") {
+      regStr += "[^/]";
+      i++;
+    } else if (c === "{") {
+      let j = i + 1;
+      let depth = 1;
+      while (j < normalized.length && depth > 0) {
+        if (normalized[j] === "{") depth++;
+        if (normalized[j] === "}") depth--;
+        j++;
+      }
+      const choices = normalized.substring(i + 1, j - 1).split(",");
+      regStr += `(?:${choices.map(choice => globToRegex(choice || "").source.replace(/^\^|\$$/g, "")).join("|")})`;
+      i = j;
+    } else if (/[.+^$()|[\]\\]/.test(c)) {
+      regStr += "\\" + c;
+      i++;
+    } else {
+      regStr += c;
+      i++;
+    }
+  }
+  
+  return new RegExp(`^${regStr}$`);
+}
+
+function pathMatches(relPath: string, patterns: string[]): boolean {
+  const normalizedPath = relPath.replace(/\\/g, "/");
+  return patterns.some(pattern => {
+    const regex = globToRegex(pattern);
+    return regex.test(normalizedPath);
+  });
 }
 
 export async function scanSource(
   rootDir: string,
-  includePatterns: string[] = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]
+  options: {
+    include?: string[];
+    exclude?: string[];
+    cwd?: string;
+  } = {}
 ): Promise<ScanReport> {
-  const report: ScanReport = { references: [], dynamic: [] };
+  const report: ScanReport = { references: [], dynamic: [], warnings: [] };
+  const baseCwd = options.cwd || rootDir;
+
+  const defaultIncludes = ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.mjs", "**/*.cjs"];
+  const defaultExcludes = ["**/node_modules/**", "**/dist/**", "**/.git/**", "**/.next/**", "**/.nuxt/**", "**/coverage/**", "**/build/**"];
+  const pruneDirs = ["node_modules", "dist", ".git", ".next", ".nuxt", "coverage", "build"];
+
+  const includes = options.include && options.include.length > 0 ? options.include : defaultIncludes;
+  const excludes = options.exclude && options.exclude.length > 0 ? options.exclude : defaultExcludes;
 
   async function walkDir(dir: string) {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
+      const relPath = path.relative(baseCwd, fullPath);
+
       if (entry.isDirectory()) {
-        if (entry.name !== "node_modules" && entry.name !== "dist" && entry.name !== ".git") {
-          await walkDir(fullPath);
+        // Prune default ignored directories early for performance
+        if (pruneDirs.includes(entry.name)) {
+          continue;
         }
+        // Also prune if directory matches any exclude pattern
+        if (pathMatches(relPath, excludes)) {
+          continue;
+        }
+        await walkDir(fullPath);
       } else {
-        if (includePatterns.some((ext) => fullPath.endsWith(ext))) {
-          await scanFile(fullPath, rootDir, report);
+        // Must match include patterns
+        if (pathMatches(relPath, includes)) {
+          // Must not match exclude patterns
+          if (!pathMatches(relPath, excludes)) {
+            await scanFile(fullPath, baseCwd, report);
+          }
         }
       }
     }
@@ -47,10 +136,21 @@ export async function scanSource(
   return report;
 }
 
-async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
+async function scanFile(filePath: string, baseCwd: string, report: ScanReport) {
+  const relPath = path.relative(baseCwd, filePath);
   try {
     const code = await fs.readFile(filePath, "utf-8");
     const result = oxc.parseSync(code, { sourceFilename: filePath });
+    
+    if (result.errors && result.errors.length > 0) {
+      for (const err of result.errors) {
+        report.warnings.push({
+          file: relPath,
+          message: err,
+        });
+      }
+    }
+
     const program = JSON.parse(result.program);
     
     // To get line/col, we need a simple line offset map
@@ -59,12 +159,33 @@ async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
       if (code[i] === "\n") lineStarts.push(i + 1);
     }
 
-    const relPath = path.relative(rootDir, filePath);
-
     walkAst(program, (node: any) => {
       if (!node) return;
 
-      // 1. process.env.FOO
+      // Object.keys(process.env) / Object.values(process.env) / Object.entries(process.env)
+      if (node.type === "CallExpression") {
+        const callee = node.callee;
+        if (
+          callee.type === "StaticMemberExpression" &&
+          callee.object.type === "Identifier" &&
+          callee.object.name === "Object" &&
+          callee.property.type === "Identifier" &&
+          ["keys", "values", "entries"].includes(callee.property.name)
+        ) {
+          const firstArg = node.arguments[0];
+          if (firstArg && (isProcessEnv(firstArg) || isImportMetaEnv(firstArg))) {
+            const { line } = getPosition(node.start, lineStarts);
+            report.dynamic.push({
+              file: relPath,
+              line,
+              snippet: code.substring(node.start, node.end),
+            });
+            return;
+          }
+        }
+      }
+
+      // 1. process.env.FOO / process.env?.FOO
       if (node.type === "StaticMemberExpression") {
         const obj = node.object;
         if (isProcessEnv(obj)) {
@@ -92,7 +213,7 @@ async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
         }
       }
 
-      // 2. process.env["FOO"]
+      // 2. process.env["FOO"] / process.env?.[ "FOO" ]
       if (node.type === "ComputedMemberExpression") {
         const obj = node.object;
         if (isProcessEnv(obj) || isImportMetaEnv(obj)) {
@@ -139,8 +260,11 @@ async function scanFile(filePath: string, rootDir: string, report: ScanReport) {
       }
     });
 
-  } catch (error) {
-    console.warn(`[env-contract] Failed to parse ${filePath}:`, error);
+  } catch (error: any) {
+    report.warnings.push({
+      file: relPath,
+      message: error.message || String(error),
+    });
   }
 }
 
@@ -158,7 +282,14 @@ function getPosition(offset: number, lineStarts: number[]) {
 }
 
 function isProcessEnv(node: any): boolean {
-  if (!node || node.type !== "StaticMemberExpression") return false;
+  if (!node) return false;
+  
+  // If wrapped in optional chaining expression
+  if (node.type === "ChainExpression") {
+    return isProcessEnv(node.expression);
+  }
+
+  if (node.type !== "StaticMemberExpression") return false;
   return (
     node.object.type === "Identifier" &&
     node.object.name === "process" &&
@@ -168,7 +299,14 @@ function isProcessEnv(node: any): boolean {
 }
 
 function isImportMetaEnv(node: any): boolean {
-  if (!node || node.type !== "StaticMemberExpression") return false;
+  if (!node) return false;
+  
+  // If wrapped in optional chaining expression
+  if (node.type === "ChainExpression") {
+    return isImportMetaEnv(node.expression);
+  }
+
+  if (node.type !== "StaticMemberExpression") return false;
   
   const obj = node.object;
   if (obj.type !== "MetaProperty") return false;

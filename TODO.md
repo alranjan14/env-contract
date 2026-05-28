@@ -75,16 +75,16 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Report missing and extra managed-block keys separately.
   - [x] Add tests for absent markers, malformed markers, duplicate keys, comments, and manual content outside the block.
 
-- [ ] Harden AST scanning.
-  - [ ] Replace suffix matching with real include/exclude pattern support or clearly document the reduced matcher.
-  - [ ] Honor config `scan.include` and `scan.exclude`.
-  - [ ] Exclude generated and dependency directories by default: `node_modules`, `dist`, `.git`, `.next`, `.nuxt`, `coverage`, `build`.
-  - [ ] Detect `Object.keys(process.env)` and report it as dynamic.
-  - [ ] Detect optional chaining where the parser represents it differently.
-  - [ ] Keep warning on `process.env[someVar]` and `import.meta.env[someVar]`.
-  - [ ] Return parse errors as structured warnings instead of direct `console.warn` from core.
-  - [ ] Make reported file paths relative to the configured cwd.
-  - [ ] Add golden tests for every scanner pattern listed in the spec.
+- [x] Harden AST scanning.
+  - [x] Replace suffix matching with real include/exclude pattern support or clearly document the reduced matcher.
+  - [x] Honor config `scan.include` and `scan.exclude`.
+  - [x] Exclude generated and dependency directories by default: `node_modules`, `dist`, `.git`, `.next`, `.nuxt`, `coverage`, `build`.
+  - [x] Detect `Object.keys(process.env)` and report it as dynamic.
+  - [x] Detect optional chaining where the parser represents it differently.
+  - [x] Keep warning on `process.env[someVar]` and `import.meta.env[someVar]`.
+  - [x] Return parse errors as structured warnings instead of direct `console.warn` from core.
+  - [x] Make reported file paths relative to the configured cwd.
+  - [x] Add golden tests for every scanner pattern listed in the spec.
 
 - [ ] Improve schema loading reliability.
   - [ ] Auto-detect `src/env.ts`, `src/env/index.ts`, and `env.ts`.
