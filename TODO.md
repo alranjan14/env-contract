@@ -102,12 +102,12 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Include the schema path in the generated block header where possible.
   - [x] Add tests for descriptions, defaults, optional/nullish schemas, enums, URLs, emails, and transforms.
 
-- [ ] Re-scope workspace support.
-  - [ ] For v0.1, prefer per-package usage through `--cwd` as described in the spec.
-  - [ ] Remove `--workspace` from the README if it is not production-ready.
-  - [ ] If keeping `--workspace`, discover packages from `pnpm-workspace.yaml`, npm/yarn workspaces, or explicit config.
-  - [ ] Avoid recursively treating unrelated nested `package.json` files as workspace packages.
-  - [ ] Add Windows, macOS, and Ubuntu tests for workspace paths.
+- [x] Re-scope workspace support.
+  - [x] For v0.1, prefer per-package usage through `--cwd` as described in the spec.
+  - [x] Remove `--workspace` from the README if it is not production-ready.
+  - [x] If keeping `--workspace`, discover packages from `pnpm-workspace.yaml`, npm/yarn workspaces, or explicit config.
+  - [x] Avoid recursively treating unrelated nested `package.json` files as workspace packages.
+  - [x] Add Windows, macOS, and Ubuntu tests for workspace paths.
 
 - [ ] Improve `install`.
   - [ ] Detect package manager and print the right command: `pnpm exec`, `npm exec`, `yarn`, or `bunx`.
