@@ -95,12 +95,12 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Decide whether Valibot and ArkType stay in v0.1 or move back to roadmap status.
   - [x] If Valibot/ArkType stay, mark support as experimental until tested against realistic schemas.
 
-- [ ] Tighten `.env.example` generation.
-  - [ ] Confirm final ordering: server first, client second, alphabetical inside each group or declaration order.
-  - [ ] Match optional/default comment formatting from the spec.
-  - [ ] Never write real default values as example values.
-  - [ ] Include the schema path in the generated block header where possible.
-  - [ ] Add tests for descriptions, defaults, optional/nullish schemas, enums, URLs, emails, and transforms.
+- [x] Tighten `.env.example` generation.
+  - [x] Confirm final ordering: server first, client second, alphabetical inside each group or declaration order.
+  - [x] Match optional/default comment formatting from the spec.
+  - [x] Never write real default values as example values.
+  - [x] Include the schema path in the generated block header where possible.
+  - [x] Add tests for descriptions, defaults, optional/nullish schemas, enums, URLs, emails, and transforms.
 
 - [ ] Re-scope workspace support.
   - [ ] For v0.1, prefer per-package usage through `--cwd` as described in the spec.
