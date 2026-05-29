@@ -1,8 +1,12 @@
 import type { Schema, SchemaEntry } from "../loaders/types.js";
 
 export function generateExample(schema: Schema): string {
-  const serverEntries = schema.entries.filter((e) => e.scope === "server");
+  const serverEntries = schema.entries.filter((e) => e.scope !== "client");
   const clientEntries = schema.entries.filter((e) => e.scope === "client");
+
+  // Sort groups alphabetically by key
+  serverEntries.sort((a, b) => a.key.localeCompare(b.key));
+  clientEntries.sort((a, b) => a.key.localeCompare(b.key));
 
   const lines: string[] = [];
 
@@ -24,23 +28,20 @@ function formatEntries(entries: SchemaEntry[]): string[] {
   for (const entry of entries) {
     if (lines.length > 0) lines.push(""); // Blank line between entries
     
-    // Description
-    if (entry.description) {
-      lines.push(`# ${entry.description}`);
-    } else {
-      lines.push(`# Type: ${entry.type}`);
-    }
-
-    // Optional / Default metadata
-    const meta: string[] = [];
-    if (entry.optional) meta.push("Optional");
-    if (entry.default !== undefined) meta.push(`default: ${JSON.stringify(entry.default)}`);
+    // Base description or fallback to type
+    let comment = entry.description ? entry.description : entry.type;
     
-    if (meta.length > 0) {
-      lines.push(`# (${meta.join(", ")})`);
+    // Add default if present
+    if (entry.default !== undefined) {
+      comment += ` (default: ${JSON.stringify(entry.default)})`;
     }
-
-    // Key=
+    
+    // Add optional if present
+    if (entry.optional) {
+      comment += " — Optional";
+    }
+    
+    lines.push(`# ${comment}`);
     lines.push(`${entry.key}=`);
   }
 

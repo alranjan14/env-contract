@@ -115,7 +115,8 @@ async function executeSync(schemaPath: string, exampleFile: string, options: any
       if (e.code !== "ENOENT") throw e;
     }
 
-    const updatedContent = injectIntoContent(existingContent, newManagedContent);
+    const relativeSchemaPath = path.relative(options.cwd || process.cwd(), schemaPath);
+    const updatedContent = injectIntoContent(existingContent, newManagedContent, relativeSchemaPath);
 
     // Parse existing managed keys and schema keys
     const managedContent = extractManagedContent(existingContent);

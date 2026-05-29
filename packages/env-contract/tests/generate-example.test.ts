@@ -27,7 +27,7 @@ describe("generate-example", () => {
     
     expect(result).toContain("# Database connection");
     expect(result).toContain("DB_URL=");
-    expect(result).toContain("# (Optional, default: 3000)");
+    expect(result).toContain("# number (default: 3000) — Optional");
     expect(result).toContain("PORT=");
   });
 

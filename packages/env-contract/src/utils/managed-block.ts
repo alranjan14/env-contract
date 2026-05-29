@@ -1,11 +1,16 @@
 export const START_MARKER = "# >>> env-contract:start (do not edit this block manually)";
 export const END_MARKER = "# <<< env-contract:end";
 
-export function injectIntoContent(existingContent: string, newManagedContent: string): string {
+export function injectIntoContent(
+  existingContent: string,
+  newManagedContent: string,
+  schemaPath?: string
+): string {
   const startIdx = existingContent.indexOf(START_MARKER);
   const endIdx = existingContent.indexOf(END_MARKER);
 
-  const block = `${START_MARKER}\n# Generated from schema. Run \`env-contract sync\` to update.\n\n${newManagedContent}\n${END_MARKER}`;
+  const sourceLabel = schemaPath ? ` from ${schemaPath}` : " from schema";
+  const block = `${START_MARKER}\n# Generated${sourceLabel}. Run \`env-contract sync\` to update.\n\n${newManagedContent}\n${END_MARKER}`;
 
   if (startIdx !== -1 && endIdx !== -1 && startIdx < endIdx) {
     // Replace existing block
