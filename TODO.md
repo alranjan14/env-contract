@@ -109,12 +109,12 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Avoid recursively treating unrelated nested `package.json` files as workspace packages.
   - [x] Add Windows, macOS, and Ubuntu tests for workspace paths.
 
-- [ ] Improve `install`.
-  - [ ] Detect package manager and print the right command: `pnpm exec`, `npm exec`, `yarn`, or `bunx`.
-  - [ ] Update Husky support for current Husky behavior instead of assuming the old `husky.sh` hook body.
-  - [ ] Keep simple-git-hooks edits idempotent.
-  - [ ] Decide whether lefthook should be written automatically or remain printed guidance.
-  - [ ] Add tests for Husky, simple-git-hooks, lefthook, no hook manager, and `--yes`.
+- [x] Improve `install`.
+  - [x] Detect package manager and print the right command: `pnpm exec`, `npm exec`, `yarn`, or `bunx`.
+  - [x] Update Husky support for current Husky behavior instead of assuming the old `husky.sh` hook body.
+  - [x] Keep simple-git-hooks edits idempotent.
+  - [x] Decide whether lefthook should be written automatically or remain printed guidance.
+  - [x] Add tests for Husky, simple-git-hooks, lefthook, no hook manager, and `--yes`.
 
 ---
 
