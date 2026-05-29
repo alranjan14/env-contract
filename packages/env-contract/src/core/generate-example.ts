@@ -1,6 +1,7 @@
 import type { Schema, SchemaEntry } from "../loaders/types.js";
+import { START_MARKER, END_MARKER } from "../utils/managed-block.js";
 
-export function generateExample(schema: Schema): string {
+export function generateExample(schema: Schema, options?: { managedBlock?: boolean }): string {
   const serverEntries = schema.entries.filter((e) => e.scope !== "client");
   const clientEntries = schema.entries.filter((e) => e.scope === "client");
 
@@ -19,7 +20,11 @@ export function generateExample(schema: Schema): string {
     lines.push(...formatEntries(clientEntries));
   }
 
-  return lines.join("\n");
+  const rawContent = lines.join("\n");
+  if (options?.managedBlock) {
+    return `${START_MARKER}\n# Generated from schema. Run \`env-contract sync\` to update.\n\n${rawContent}\n${END_MARKER}`;
+  }
+  return rawContent;
 }
 
 function formatEntries(entries: SchemaEntry[]): string[] {

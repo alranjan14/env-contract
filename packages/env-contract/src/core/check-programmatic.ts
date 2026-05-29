@@ -1,0 +1,91 @@
+import { findSchemaFile } from "../utils/file.js";
+import { loadSchema } from "./load-schema.js";
+import { extractManagedContent } from "../utils/managed-block.js";
+import { parseEnvKeys, diff } from "./diff.js";
+import { scanSource } from "./scan-source.js";
+import { resolveConfig } from "../config.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { Reference } from "./scan-source.js";
+
+export async function check(options: { cwd?: string; strict?: boolean; schema?: string } = {}): Promise<{
+  ok: boolean;
+  exampleDrift: {
+    missingInExample: string[];
+    extraInExample: string[];
+  };
+  orphanedRefs: Reference[];
+  unusedSchemaKeys: string[];
+}> {
+  const cwd = options.cwd || process.cwd();
+  const config = await resolveConfig(cwd);
+
+  const schemaPath = options.schema 
+    ? path.resolve(cwd, options.schema) 
+    : (config.schema ? path.resolve(cwd, config.schema) : await findSchemaFile(cwd));
+
+  const schema = await loadSchema(schemaPath);
+  
+  // 1. Sync check
+  const exampleFile = config.exampleFile ? path.resolve(cwd, config.exampleFile) : path.resolve(cwd, ".env.example");
+  
+  let existingContent = "";
+  try {
+    existingContent = await fs.readFile(exampleFile, "utf-8");
+  } catch (e: any) {
+    if (e.code !== "ENOENT") throw e;
+  }
+
+  const managedContent = extractManagedContent(existingContent);
+  const existingManagedKeys = managedContent ? parseEnvKeys(managedContent) : [];
+  const schemaKeys = schema.entries.map((e) => e.key);
+  const ignoredKeys = new Set(config.ignoreKeys || []);
+
+  const existingManagedKeySet = new Set(existingManagedKeys);
+  const schemaKeySet = new Set(schemaKeys);
+
+  const missingInExample: string[] = [];
+  const extraInExample: string[] = [];
+
+  for (const key of schemaKeys) {
+    if (!existingManagedKeySet.has(key) && !ignoredKeys.has(key)) {
+      missingInExample.push(key);
+    }
+  }
+
+  const uniqueExistingManagedKeys = Array.from(existingManagedKeySet);
+  for (const key of uniqueExistingManagedKeys) {
+    if (!schemaKeySet.has(key) && !ignoredKeys.has(key)) {
+      extraInExample.push(key);
+    }
+  }
+
+  const hasSyncDrift = missingInExample.length > 0 || extraInExample.length > 0;
+
+  // 2. Scan check
+  const rootDir = config.rootDir ? path.resolve(cwd, config.rootDir) : path.join(cwd, "src");
+  const include = config.scan?.include;
+  const exclude = config.scan?.exclude;
+  const scanOptions: { include?: string[]; exclude?: string[]; cwd?: string } = { cwd };
+  if (include) scanOptions.include = include;
+  if (exclude) scanOptions.exclude = exclude;
+
+  const report = await scanSource(rootDir, scanOptions);
+  
+  const diffResult = diff(schema, [], report.references, {
+    strict: options.strict !== undefined ? options.strict : false,
+    ignoreKeys: config.ignoreKeys || [],
+  });
+
+  const hasScanDrift = diffResult.orphanedRefs.length > 0 || (options.strict && diffResult.unusedSchemaKeys.length > 0);
+
+  return {
+    ok: !hasSyncDrift && !hasScanDrift,
+    exampleDrift: {
+      missingInExample,
+      extraInExample
+    },
+    orphanedRefs: diffResult.orphanedRefs,
+    unusedSchemaKeys: diffResult.unusedSchemaKeys
+  };
+}

@@ -120,12 +120,12 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
 
 ## P2 - Programmatic API And Architecture
 
-- [ ] Align exported API with the spec.
-  - [ ] Support `loadSchema({ path, cwd })` in addition to the current positional form, or update the spec.
-  - [ ] Export `scan`, `check`, and `generateExample` with options that match the public README.
-  - [ ] Ensure API functions do not write to stdout/stderr.
-  - [ ] Return structured reports from core functions.
-  - [ ] Keep CLI formatting in reporters, not in core logic.
+- [x] Align exported API with the spec.
+  - [x] Support `loadSchema({ path, cwd })` in addition to the current positional form, or update the spec.
+  - [x] Export `scan`, `check`, and `generateExample` with options that match the public README.
+  - [x] Ensure API functions do not write to stdout/stderr.
+  - [x] Return structured reports from core functions.
+  - [x] Keep CLI formatting in reporters, not in core logic.
 
 - [ ] Add reporter modules.
   - [ ] Create pretty reporter for human CLI output.

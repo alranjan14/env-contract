@@ -8,7 +8,22 @@ import type { Schema } from "../loaders/types.js";
 
 const registeredLoaders = [t3EnvLoader, zodLoader, valibotLoader, arktypeLoader];
 
-export async function loadSchema(schemaPath: string, cwd: string = process.cwd()): Promise<Schema> {
+export async function loadSchema(
+  pathOrOptions: string | { path: string; cwd?: string },
+  cwdFallback?: string
+): Promise<Schema> {
+  let schemaPath: string;
+  let cwd = cwdFallback || process.cwd();
+
+  if (typeof pathOrOptions === "object" && pathOrOptions !== null) {
+    schemaPath = pathOrOptions.path;
+    if (pathOrOptions.cwd) {
+      cwd = pathOrOptions.cwd;
+    }
+  } else {
+    schemaPath = pathOrOptions;
+  }
+
   const absolutePath = path.isAbsolute(schemaPath) 
     ? schemaPath 
     : path.resolve(cwd, schemaPath);
