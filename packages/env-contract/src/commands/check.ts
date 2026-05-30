@@ -1,67 +1,111 @@
-import pc from "picocolors";
-import { runSync } from "./sync.js";
-import { runScan } from "./scan.js";
+import { check } from "../core/check-programmatic.js";
+import { formatJsonCheck } from "../reporters/json.js";
+import { reportCheck } from "../reporters/pretty.js";
+import { findWorkspacePackages } from "../utils/workspace.js";
 import type { Config } from "../config.js";
+import type { CheckReport, PackageCheckReport } from "../reporters/types.js";
 
-export async function runCheck(options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string }, config: Config = {}): Promise<{ code: number }> {
-  if (!options.json) {
-    console.log(pc.cyan("Running environment contract check..."));
-  }
-
-  // 1. Check sync drift
-  const { code: syncCode, data: syncData } = await runSync({ 
-    ...options,
-    check: true, 
-    silent: !!options.json 
-  }, config);
+export async function runCheck(
+  options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string },
+  _config: Config = {}
+): Promise<{ code: number }> {
+  const cwd = options.cwd || process.cwd();
   
-  // 2. Check scan drift
-  const { code: scanCode, data: scanData } = await runScan({ 
-    ...options,
-    silent: !!options.json,
-    _internal: true
-  }, config);
+  let checkReport: CheckReport;
 
-  if (options.json) {
-    let combined: any;
-    if (options.workspace) {
-      combined = (Array.isArray(scanData) ? scanData : []).map(scanPkg => {
-        const syncPkg = (Array.isArray(syncData) ? syncData : []).find(s => s.package === scanPkg.package);
-        return {
-          ...scanPkg,
-          syncDrift: syncPkg ? syncPkg.syncDrift : false,
-          exampleDrift: {
-            missingInExample: syncPkg ? syncPkg.missingInExample || [] : [],
-            extraInExample: syncPkg ? syncPkg.extraInExample || [] : []
-          }
-        };
+  if (options.workspace) {
+    const packages = await findWorkspacePackages(cwd);
+    const packageReports: PackageCheckReport[] = [];
+    let ok = true;
+
+    for (const pkg of packages) {
+      try {
+        const pkgReport = await check({
+          cwd: pkg.dir,
+          strict: options.strict,
+          schema: options.schema
+        });
+
+        if (!pkgReport.ok) ok = false;
+
+        packageReports.push({
+          package: pkg.dir,
+          syncDrift: pkgReport.exampleDrift.missingInExample.length > 0 || pkgReport.exampleDrift.extraInExample.length > 0,
+          exampleDrift: pkgReport.exampleDrift,
+          orphanedRefs: pkgReport.orphanedRefs,
+          unusedSchemaKeys: pkgReport.unusedSchemaKeys,
+          dynamicRefs: pkgReport.dynamicRefs,
+          warnings: pkgReport.warnings,
+        });
+      } catch (error: any) {
+        ok = false;
+        packageReports.push({
+          package: pkg.dir,
+          syncDrift: false,
+          exampleDrift: { missingInExample: [], extraInExample: [] },
+          orphanedRefs: [],
+          unusedSchemaKeys: [],
+          dynamicRefs: [],
+          warnings: [],
+          error: error.message,
+        });
+      }
+    }
+
+    checkReport = {
+      ok,
+      workspace: true,
+      packages: packageReports,
+    };
+  } else {
+    try {
+      const pkgReport = await check({
+        cwd,
+        strict: options.strict,
+        schema: options.schema
       });
-    } else {
-      combined = {
-        ...(scanData || {}),
-        syncDrift: syncData?.syncDrift || false,
-        exampleDrift: {
-          missingInExample: syncData?.missingInExample || [],
-          extraInExample: syncData?.extraInExample || []
-        }
+
+      checkReport = {
+        ok: pkgReport.ok,
+        workspace: false,
+        packages: [{
+          package: cwd,
+          syncDrift: pkgReport.exampleDrift.missingInExample.length > 0 || pkgReport.exampleDrift.extraInExample.length > 0,
+          exampleDrift: pkgReport.exampleDrift,
+          orphanedRefs: pkgReport.orphanedRefs,
+          unusedSchemaKeys: pkgReport.unusedSchemaKeys,
+          dynamicRefs: pkgReport.dynamicRefs,
+          warnings: pkgReport.warnings,
+        }],
+      };
+    } catch (error: any) {
+      checkReport = {
+        ok: false,
+        workspace: false,
+        packages: [{
+          package: cwd,
+          syncDrift: false,
+          exampleDrift: { missingInExample: [], extraInExample: [] },
+          orphanedRefs: [],
+          unusedSchemaKeys: [],
+          dynamicRefs: [],
+          warnings: [],
+          error: error.message,
+        }],
       };
     }
-    console.log(JSON.stringify(combined, null, 2));
-    
-    if (syncCode === 2 || scanCode === 2) return { code: 2 };
-    return { code: (syncCode === 0 && scanCode === 0) ? 0 : 1 };
   }
 
-  if (syncCode === 2 || scanCode === 2) {
+  if (options.json) {
+    console.log(formatJsonCheck(checkReport));
+  } else {
+    reportCheck(checkReport, { strict: options.strict });
+  }
+
+  const hasRuntimeError = checkReport.packages.some(p => p.error !== undefined);
+  if (hasRuntimeError) {
     return { code: 2 };
   }
 
-  if (syncCode === 0 && scanCode === 0) {
-    console.log(pc.green("\n✔ Environment contract is healthy."));
-    return { code: 0 };
-  }
-
-  console.error(pc.red("\n✖ Environment contract check failed."));
-  console.error(pc.yellow("👉 Suggestion: Fix this by running 'npx env-contract sync' locally and committing the result."));
-  return { code: 1 };
+  return { code: checkReport.ok ? 0 : 1 };
 }

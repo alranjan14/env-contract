@@ -6,9 +6,9 @@ import { scanSource } from "./scan-source.js";
 import { resolveConfig } from "../config.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { Reference } from "./scan-source.js";
+import type { Reference, DynamicReference } from "./scan-source.js";
 
-export async function check(options: { cwd?: string; strict?: boolean; schema?: string } = {}): Promise<{
+export async function check(options: { cwd?: string | undefined; strict?: boolean | undefined; schema?: string | undefined } = {}): Promise<{
   ok: boolean;
   exampleDrift: {
     missingInExample: string[];
@@ -16,6 +16,8 @@ export async function check(options: { cwd?: string; strict?: boolean; schema?: 
   };
   orphanedRefs: Reference[];
   unusedSchemaKeys: string[];
+  dynamicRefs: DynamicReference[];
+  warnings: Array<{ file: string; message: string }>;
 }> {
   const cwd = options.cwd || process.cwd();
   const config = await resolveConfig(cwd);
@@ -86,6 +88,8 @@ export async function check(options: { cwd?: string; strict?: boolean; schema?: 
       extraInExample
     },
     orphanedRefs: diffResult.orphanedRefs,
-    unusedSchemaKeys: diffResult.unusedSchemaKeys
+    unusedSchemaKeys: diffResult.unusedSchemaKeys,
+    dynamicRefs: report.dynamic,
+    warnings: report.warnings,
   };
 }

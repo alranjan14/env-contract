@@ -127,10 +127,10 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Return structured reports from core functions.
   - [x] Keep CLI formatting in reporters, not in core logic.
 
-- [ ] Add reporter modules.
-  - [ ] Create pretty reporter for human CLI output.
-  - [ ] Create JSON reporter for stable machine-readable output.
-  - [ ] Keep report types stable enough for CI integrations.
+- [x] Add reporter modules.
+  - [x] Create pretty reporter for human CLI output.
+  - [x] Create JSON reporter for stable machine-readable output.
+  - [x] Keep report types stable enough for CI integrations.
 
 - [ ] Maintain the small dependency budget deliberately.
   - [ ] Re-evaluate whether glob support needs a fifth dependency.
