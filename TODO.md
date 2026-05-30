@@ -132,10 +132,10 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Create JSON reporter for stable machine-readable output.
   - [x] Keep report types stable enough for CI integrations.
 
-- [ ] Maintain the small dependency budget deliberately.
-  - [ ] Re-evaluate whether glob support needs a fifth dependency.
-  - [ ] If adding a glob library, document the tradeoff and choose a tiny maintained package.
-  - [ ] Keep no telemetry, no postinstall scripts, and no network access.
+- [x] Maintain the small dependency budget deliberately.
+  - [x] Re-evaluate whether glob support needs a fifth dependency.
+  - [x] If adding a glob library, document the tradeoff and choose a tiny maintained package.
+  - [x] Keep no telemetry, no postinstall scripts, and no network access.
 
 ---
 
