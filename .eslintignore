@@ -4,3 +4,4 @@ scratch/
 coverage/
 *.cjs
 *.mjs
+**/tests/fixtures/**

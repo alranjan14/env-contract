@@ -15,5 +15,5 @@
     "node": true,
     "es2022": true
   },
-  "ignorePatterns": ["dist/", "node_modules/", "scratch/", "coverage/", "*.cjs", "*.mjs"]
+  "ignorePatterns": ["dist/", "node_modules/", "scratch/", "coverage/", "*.cjs", "*.mjs", "**/fixtures/**"]
 }

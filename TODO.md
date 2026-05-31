@@ -141,14 +141,14 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
 
 ## P2 - Tests And CI
 
-- [ ] Add realistic fixtures.
-  - [ ] `basic-zod`
-  - [ ] `t3-env-nextjs`
-  - [ ] `t3-env-with-presets`
-  - [ ] `orphan-refs`
-  - [ ] `empty-project`
-  - [ ] `parse-error`
-  - [ ] `monorepo` only if workspace mode is retained
+- [x] Add realistic fixtures.
+  - [x] `basic-zod`
+  - [x] `t3-env-nextjs`
+  - [x] `t3-env-with-presets`
+  - [x] `orphan-refs`
+  - [x] `empty-project`
+  - [x] `parse-error`
+  - [x] `monorepo` only if workspace mode is retained
 
 - [ ] Add CLI E2E coverage.
   - [ ] `sync` creates a new `.env.example`.
