@@ -150,14 +150,14 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] `parse-error`
   - [x] `monorepo` only if workspace mode is retained
 
-- [ ] Add CLI E2E coverage.
-  - [ ] `sync` creates a new `.env.example`.
-  - [ ] `sync` preserves manual content outside the managed block.
-  - [ ] `sync --check` exits `1` without writing when drift exists.
-  - [ ] `scan` reports orphaned references.
-  - [ ] `scan --strict` reports unused schema keys.
-  - [ ] `check` reports sync drift and scan drift together.
-  - [ ] `--json` output is valid JSON for success, drift, and runtime error cases.
+- [x] Add CLI E2E coverage.
+  - [x] `sync` creates a new `.env.example`.
+  - [x] `sync` preserves manual content outside the managed block.
+  - [x] `sync --check` exits `1` without writing when drift exists.
+  - [x] `scan` reports orphaned references.
+  - [x] `scan --strict` reports unused schema keys.
+  - [x] `check` reports sync drift and scan drift together.
+  - [x] `--json` output is valid JSON for success, drift, and runtime error cases.
 
 - [ ] Add downstream package smoke tests.
   - [ ] Install from `npm pack` tarball in a fresh directory.
