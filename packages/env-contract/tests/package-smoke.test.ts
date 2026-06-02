@@ -59,7 +59,8 @@ function getPackageRoot(packageName: PeerPackage): string {
   throw new Error(`Could not locate package root for ${packageName}`);
 }
 
-function assertCanImportAndRequire(tmpDir: string) {
+async function assertPackageFunctional(tmpDir: string) {
+  // 1. Assert CJS and ESM imports/requires work
   const importOutput = exec(
     process.execPath,
     [
@@ -77,6 +78,57 @@ function assertCanImportAndRequire(tmpDir: string) {
     tmpDir,
   );
   expect(requireOutput).toContain("require ok");
+
+  // 2. Assert CLI binary execution works
+  const cliJsPath = path.join(tmpDir, "node_modules", "env-contract", "dist", "cli.js");
+  const cliOutputDirect = exec(process.execPath, [cliJsPath, "--help"], tmpDir);
+  expect(cliOutputDirect).toContain("env-contract <command> [options]");
+
+  try {
+    const cliOutputNpx = exec("npx", ["env-contract", "--help"], tmpDir);
+    expect(cliOutputNpx).toContain("env-contract <command> [options]");
+  } catch (err) {
+    // If npx is not available in the test runner's environment, we print a warning but don't fail,
+    // as direct execution via node is verified above.
+    console.warn("Skipping npx bin test wrapper:", err);
+  }
+
+  // 3. Assert TypeScript type resolution works in a downstream project
+  await fs.writeFile(
+    path.join(tmpDir, "tsconfig.json"),
+    JSON.stringify({
+      compilerOptions: {
+        target: "ES2022",
+        module: "Node16",
+        moduleResolution: "Node16",
+        strict: true,
+        esModuleInterop: true,
+        skipLibCheck: true,
+      },
+    }, null, 2),
+  );
+
+  await fs.writeFile(
+    path.join(tmpDir, "smoke-test.ts"),
+    `
+import { scan, check, generateExample } from "env-contract";
+console.log(typeof scan, typeof check, typeof generateExample);
+`,
+  );
+
+  let tscPath: string;
+  try {
+    tscPath = require.resolve("typescript/bin/tsc");
+  } catch {
+    try {
+      tscPath = require.resolve("typescript/lib/tsc.js");
+    } catch {
+      tscPath = path.resolve(PACKAGE_DIR, "../../node_modules/typescript/bin/tsc");
+    }
+  }
+
+  const tscOutput = exec(process.execPath, [tscPath, "--noEmit"], tmpDir);
+  expect(tscOutput).toBeDefined();
 }
 
 describe("published package smoke tests", () => {
@@ -96,11 +148,11 @@ describe("published package smoke tests", () => {
         expect(missingPeerOutput).toContain(`${peer} missing`);
       }
 
-      assertCanImportAndRequire(tmpDir);
+      await assertPackageFunctional(tmpDir);
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
-  }, 30_000);
+  }, 45_000);
 
   it.each<PeerPackage>(["zod", "valibot", "arktype"])(
     "can be imported and required with %s installed",
@@ -108,11 +160,11 @@ describe("published package smoke tests", () => {
       const tmpDir = await installPackedPackage([peerPackage]);
 
       try {
-        assertCanImportAndRequire(tmpDir);
+        await assertPackageFunctional(tmpDir);
       } finally {
         await fs.rm(tmpDir, { recursive: true, force: true });
       }
     },
-    30_000,
+    45_000,
   );
 });

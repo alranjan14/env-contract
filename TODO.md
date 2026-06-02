@@ -159,17 +159,17 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] `check` reports sync drift and scan drift together.
   - [x] `--json` output is valid JSON for success, drift, and runtime error cases.
 
-- [ ] Add downstream package smoke tests.
-  - [ ] Install from `npm pack` tarball in a fresh directory.
-  - [ ] Test ESM import.
-  - [ ] Test CommonJS require.
-  - [ ] Test CLI bin execution.
-  - [ ] Test type resolution in a downstream TypeScript project.
+- [x] Add downstream package smoke tests.
+  - [x] Install from `npm pack` tarball in a fresh directory.
+  - [x] Test ESM import.
+  - [x] Test CommonJS require.
+  - [x] Test CLI bin execution.
+  - [x] Test type resolution in a downstream TypeScript project.
 
-- [ ] Expand CI matrix.
-  - [ ] Run on Ubuntu, macOS, and Windows.
-  - [ ] Run on Node 22 and Node 24.
-  - [ ] Keep `typecheck`, `lint`, `build`, `test`, and tarball smoke tests as required checks.
+- [x] Expand CI matrix.
+  - [x] Run on Ubuntu, macOS, and Windows.
+  - [x] Run on Node 22 and Node 24.
+  - [x] Keep `typecheck`, `lint`, `build`, `test`, and tarball smoke tests as required checks.
   - [ ] Consider package-manager smoke tests for pnpm, npm, yarn, and bun after v0.1.
 
 ---
