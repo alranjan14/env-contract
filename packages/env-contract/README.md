@@ -234,6 +234,17 @@ SKIP_ENV_VALIDATION=1 npx env-contract check
 
 ---
 
+## Framework Recipes
+
+Looking for specific setup instructions? Check out our step-by-step [Framework & Library Integration Recipes](./docs/recipes.md) for:
+- [T3 / @t3-oss/env-core](./docs/recipes.md#1-t3---t3-ossenv-core)
+- [Next.js](./docs/recipes.md#2-nextjs)
+- [Vite / Astro (using import.meta.env)](./docs/recipes.md#3-vite--astro-using-importmetaenv)
+- [Express or Hono (with plain Zod)](./docs/recipes.md#4-express-or-hono-with-plain-zod)
+- [Turborepo (per-package recipe)](./docs/recipes.md#5-turborepo-per-package-recipe)
+
+---
+
 ## License
 
 MIT

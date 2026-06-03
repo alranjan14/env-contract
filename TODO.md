@@ -186,12 +186,12 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Add troubleshooting for schema import/runtime validation failures.
   - [x] Add a fair comparison table.
 
-- [ ] Add framework recipes.
-  - [ ] T3 / `@t3-oss/env-core`
-  - [ ] Next.js
-  - [ ] Vite / Astro using `import.meta.env`
-  - [ ] Express or Hono with plain Zod
-  - [ ] Turborepo per-package recipe
+- [x] Add framework recipes.
+  - [x] T3 / `@t3-oss/env-core`
+  - [x] Next.js
+  - [x] Vite / Astro using `import.meta.env`
+  - [x] Express or Hono with plain Zod
+  - [x] Turborepo per-package recipe
 
 - [x] Clean up repo documentation.
   - [x] Make root `README.md` either the real docs or a short pointer to `packages/env-contract/README.md`.
