@@ -176,15 +176,15 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
 
 ## P2 - Documentation And Developer Experience
 
-- [ ] Rewrite the README to match what is actually supported.
-  - [ ] Lead with install and quick start in the first screen.
-  - [ ] Add "Supported today", "Experimental", and "Roadmap" sections.
-  - [ ] Remove or qualify Valibot, ArkType, watch mode, and workspace claims until they are production-ready.
-  - [ ] Add CLI reference with all flags and exit codes.
-  - [ ] Add config reference.
-  - [ ] Add known limitations prominently.
-  - [ ] Add troubleshooting for schema import/runtime validation failures.
-  - [ ] Add a fair comparison table.
+- [x] Rewrite the README to match what is actually supported.
+  - [x] Lead with install and quick start in the first screen.
+  - [x] Add "Supported today", "Experimental", and "Roadmap" sections.
+  - [x] Remove or qualify Valibot, ArkType, watch mode, and workspace claims until they are production-ready.
+  - [x] Add CLI reference with all flags and exit codes.
+  - [x] Add config reference.
+  - [x] Add known limitations prominently.
+  - [x] Add troubleshooting for schema import/runtime validation failures.
+  - [x] Add a fair comparison table.
 
 - [ ] Add framework recipes.
   - [ ] T3 / `@t3-oss/env-core`
@@ -193,11 +193,11 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [ ] Express or Hono with plain Zod
   - [ ] Turborepo per-package recipe
 
-- [ ] Clean up repo documentation.
-  - [ ] Make root `README.md` either the real docs or a short pointer to `packages/env-contract/README.md`.
-  - [ ] Update `env-contract-spec.md` with decisions made during implementation.
-  - [ ] Update `npm-package-launch-playbook.md` if any publishing assumptions change.
-  - [ ] Decide whether spec/playbook docs should be committed; if yes, stop ignoring them in `.gitignore`.
+- [x] Clean up repo documentation.
+  - [x] Make root `README.md` either the real docs or a short pointer to `packages/env-contract/README.md`.
+  - [x] Update `env-contract-spec.md` with decisions made during implementation.
+  - [x] Update `npm-package-launch-playbook.md` if any publishing assumptions change.
+  - [x] Decide whether spec/playbook docs should be committed; if yes, stop ignoring them in `.gitignore`.
 
 - [ ] Prepare future docs site scope.
   - [ ] Defer full docs site until README grows large or users ask for deeper guides.
