@@ -170,7 +170,7 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Run on Ubuntu, macOS, and Windows.
   - [x] Run on Node 22 and Node 24.
   - [x] Keep `typecheck`, `lint`, `build`, `test`, and tarball smoke tests as required checks.
-  - [ ] Consider package-manager smoke tests for pnpm, npm, yarn, and bun after v0.1.
+  - [x] Consider package-manager smoke tests for pnpm, npm, yarn, and bun after v0.1.
 
 ---
 
@@ -209,15 +209,15 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
 ## P2 - Governance, Security, And Repo Hygiene
 
 - [ ] Replace placeholder governance files.
-  - [ ] Replace placeholder text in `CODE_OF_CONDUCT.md` with the full Contributor Covenant text.
-  - [ ] Replace placeholder email in `SECURITY.md` or point to GitHub Security Advisories.
+  - [x] Replace placeholder text in `CODE_OF_CONDUCT.md` with the full Contributor Covenant text.
+  - [x] Replace placeholder email in `SECURITY.md` or point to GitHub Security Advisories.
   - [ ] Update `CONTRIBUTING.md` with real repo URL and required local checks.
 
-- [ ] Clean tracked development artifacts.
-  - [ ] Remove `packages/env-contract/test-output.txt` if it is only local output.
-  - [ ] Remove `packages/env-contract/test_cli_fail.ts` if it is only a scratch script.
-  - [ ] Remove `packages/env-contract/test_template.ts` if it is only a scratch script.
-  - [ ] Ensure scratch files stay ignored.
+- [x] Clean tracked development artifacts.
+  - [x] Remove `packages/env-contract/test-output.txt` if it is only local output.
+  - [x] Remove `packages/env-contract/test_cli_fail.ts` if it is only a scratch script.
+  - [x] Remove `packages/env-contract/test_template.ts` if it is only a scratch script.
+  - [x] Ensure scratch files stay ignored.
 
 - [ ] Add or verify changelog flow.
   - [ ] Ensure changesets generates package changelog entries.
@@ -228,7 +228,7 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [ ] Enable Dependabot alerts and security updates.
   - [ ] Protect `main` with required CI checks.
   - [ ] Enable Discussions only if you plan to monitor them.
-  - [ ] Configure npm Trusted Publishing for the exact repository and workflow.
+  - [x] Configure npm Trusted Publishing for the exact repository and workflow.
 
 ---
 

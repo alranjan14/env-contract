@@ -6,7 +6,7 @@ We take the security of this project seriously. If you believe you have found a 
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please send an email to [your-email@example.com].
+Instead, please send an email to alranjan14@gmail.com.
 
 ### What to include in your report
 
