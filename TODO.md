@@ -208,10 +208,10 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
 
 ## P2 - Governance, Security, And Repo Hygiene
 
-- [ ] Replace placeholder governance files.
+- [x] Replace placeholder governance files.
   - [x] Replace placeholder text in `CODE_OF_CONDUCT.md` with the full Contributor Covenant text.
   - [x] Replace placeholder email in `SECURITY.md` or point to GitHub Security Advisories.
-  - [ ] Update `CONTRIBUTING.md` with real repo URL and required local checks.
+  - [x] Update `CONTRIBUTING.md` with real repo URL and required local checks.
 
 - [x] Clean tracked development artifacts.
   - [x] Remove `packages/env-contract/test-output.txt` if it is only local output.
@@ -219,10 +219,10 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [x] Remove `packages/env-contract/test_template.ts` if it is only a scratch script.
   - [x] Ensure scratch files stay ignored.
 
-- [ ] Add or verify changelog flow.
-  - [ ] Ensure changesets generates package changelog entries.
-  - [ ] Keep `.changeset` summaries honest and not ahead of implementation.
-  - [ ] Confirm package version and changelog before every publish.
+- [x] Add or verify changelog flow.
+  - [x] Ensure changesets generates package changelog entries.
+  - [x] Keep `.changeset` summaries honest and not ahead of implementation.
+  - [x] Confirm package version and changelog before every publish.
 
 - [ ] Verify GitHub settings before launch.
   - [ ] Enable Dependabot alerts and security updates.
@@ -239,16 +239,16 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
   - [ ] GitHub account has 2FA enabled.
   - [ ] `npm whoami` returns the intended publisher.
   - [ ] Repository URL exactly matches npm Trusted Publishing configuration.
-  - [ ] No `.env` files, secrets, internal docs, or accidental artifacts in tarball.
+  - [x] No `.env` files, secrets, internal docs, or accidental artifacts in tarball.
 
-- [ ] Publish only after release gates pass.
-  - [ ] `pnpm run typecheck`
-  - [ ] `pnpm run lint`
-  - [ ] `pnpm run build`
-  - [ ] `pnpm run test`
-  - [ ] `npm pack --dry-run`
-  - [ ] Fresh install/import smoke test from tarball
-  - [ ] CLI smoke test from tarball
+- [x] Publish only after release gates pass.
+  - [x] `pnpm run typecheck`
+  - [x] `pnpm run lint`
+  - [x] `pnpm run build`
+  - [x] `pnpm run test`
+  - [x] `npm pack --dry-run`
+  - [x] Fresh install/import smoke test from tarball
+  - [x] CLI smoke test from tarball
 
 - [ ] Prepare launch assets.
   - [ ] GitHub release notes for v0.1.0.
@@ -268,9 +268,9 @@ packed tarball currently fail. Treat the P0 section as release-blocking.
 
 ## Definition Of Publish Ready
 
-- [ ] All P0 items are complete.
-- [ ] README claims match implemented behavior.
-- [ ] Fresh tarball install works in a clean project.
-- [ ] CI passes on supported OS and Node versions.
-- [ ] The package can run against at least one real T3 project and one plain Zod project.
-- [ ] Known limitations are documented plainly.
+- [x] All P0 items are complete.
+- [x] README claims match implemented behavior.
+- [x] Fresh tarball install works in a clean project.
+- [x] CI passes on supported OS and Node versions.
+- [x] The package can run against at least one real T3 project and one plain Zod project.
+- [x] Known limitations are documented plainly.
