@@ -1,13 +1,13 @@
 name: CI
 
-# NOTE: the repository default branch is currently `master`. Both `main` and
-# `master` are listed so CI runs today and keeps working if the default branch
-# is renamed to `main`. If you rename, you can drop `master` here.
+# Triggers cover `dev` (active working branch), `master` (current default), and
+# `main` (so CI keeps working if the default branch is renamed). Trim the ones you
+# don't use once the branching model is settled.
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, dev]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, dev]
   workflow_dispatch:
 
 jobs:
