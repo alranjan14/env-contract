@@ -8,37 +8,59 @@ import { resolveConfig } from "../config.js";
 import { findSchemaFile } from "../utils/file.js";
 import { formatJsonScan } from "../reporters/json.js";
 import { reportScan } from "../reporters/pretty.js";
+import { toError } from "../utils/errors.js";
+import { makeLogger } from "../utils/logger.js";
+import { ExitCode } from "../utils/exit-code.js";
 import type { Config } from "../config.js";
 import type { ScanReportData } from "../reporters/types.js";
 
 export async function runScan(
-  options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string; include?: string[]; exclude?: string[]; silent?: boolean; _internal?: boolean },
-  config: Config = {}
-): Promise<{ code: number; data?: any }> {
+  options: {
+    strict?: boolean;
+    json?: boolean;
+    workspace?: boolean;
+    cwd?: string;
+    schema?: string;
+    include?: string[] | undefined;
+    exclude?: string[] | undefined;
+    silent?: boolean;
+    _internal?: boolean;
+  },
+  config: Config = {},
+): Promise<{ code: ExitCode; data?: ScanReportData | ScanReportData[] }> {
   const cwd = options.cwd || process.cwd();
   const isWorkspace = options.workspace;
+  const logger = makeLogger({ json: options.json, silent: options.silent });
 
   try {
     if (isWorkspace) {
       const packages = await findWorkspacePackages(cwd);
       if (packages.length === 0) {
-        if (!options.json && !options.silent) console.log(pc.yellow("No workspace packages found."));
-        return { code: 0, data: [] };
+        logger.info(pc.yellow("No workspace packages found."));
+        return { code: ExitCode.Ok, data: [] };
       }
 
-      if (!options.json && !options.silent) console.log(pc.cyan(`Scanning ${packages.length} packages in workspace...`));
+      logger.info(pc.cyan(`Scanning ${packages.length} packages in workspace...`));
 
       const allReports: ScanReportData[] = [];
       let hasErrors = false;
 
       for (const pkg of packages) {
         const pkgConfig = await resolveConfig(pkg.dir);
-        const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (pkgConfig.schema ? path.resolve(pkg.dir, pkgConfig.schema) : await findSchemaFile(pkg.dir));
-        const rootDir = pkgConfig.rootDir ? path.resolve(pkg.dir, pkgConfig.rootDir) : path.join(pkg.dir, "src");
-        
+        const schemaPath = options.schema
+          ? path.resolve(cwd, options.schema)
+          : pkgConfig.schema
+            ? path.resolve(pkg.dir, pkgConfig.schema)
+            : await findSchemaFile(pkg.dir);
+        const rootDir = pkgConfig.rootDir
+          ? path.resolve(pkg.dir, pkgConfig.rootDir)
+          : path.join(pkg.dir, "src");
+
         const include = options.include || pkgConfig.scan?.include;
         const exclude = options.exclude || pkgConfig.scan?.exclude;
-        const scanOptions: { include?: string[]; exclude?: string[]; cwd?: string } = { cwd: pkg.dir };
+        const scanOptions: { include?: string[]; exclude?: string[]; cwd?: string } = {
+          cwd: pkg.dir,
+        };
         if (include) scanOptions.include = include;
         if (exclude) scanOptions.exclude = exclude;
 
@@ -59,13 +81,16 @@ export async function runScan(
             orphanedRefs: result.orphanedRefs,
             unusedSchemaKeys: result.unusedSchemaKeys,
             dynamicRefs: report.dynamic,
-            warnings: report.warnings
+            warnings: report.warnings,
           });
 
-          if (result.orphanedRefs.length > 0 || (options.strict && result.unusedSchemaKeys.length > 0)) {
+          if (
+            result.orphanedRefs.length > 0 ||
+            (options.strict && result.unusedSchemaKeys.length > 0)
+          ) {
             hasErrors = true;
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
           allReports.push({
             package: pkg.dir,
             rootDir,
@@ -73,34 +98,36 @@ export async function runScan(
             unusedSchemaKeys: [],
             dynamicRefs: [],
             warnings: [],
-            error: e.message
+            error: toError(e).message,
           });
           hasErrors = true;
         }
       }
 
       if (options.json && !options._internal) {
-        console.log(formatJsonScan(allReports));
+        logger.output(formatJsonScan(allReports));
       } else if (!options.json && !options.silent) {
-        reportScan(allReports, { strict: options.strict });
+        reportScan(allReports, { strict: options.strict }, logger);
       }
 
-      return { code: hasErrors ? 1 : 0, data: allReports };
+      return { code: hasErrors ? ExitCode.Drift : ExitCode.Ok, data: allReports };
     }
 
     // Single mode
-    const schemaPath = options.schema ? path.resolve(cwd, options.schema) : (config.schema ? path.resolve(cwd, config.schema) : await findSchemaFile(cwd));
+    const schemaPath = options.schema
+      ? path.resolve(cwd, options.schema)
+      : config.schema
+        ? path.resolve(cwd, config.schema)
+        : await findSchemaFile(cwd);
     const rootDir = config.rootDir ? path.resolve(cwd, config.rootDir) : path.join(cwd, "src");
-    
+
     const include = options.include || config.scan?.include;
     const exclude = options.exclude || config.scan?.exclude;
     const scanOptions: { include?: string[]; exclude?: string[]; cwd?: string } = { cwd };
     if (include) scanOptions.include = include;
     if (exclude) scanOptions.exclude = exclude;
 
-    if (!options.json && !options.silent) {
-      console.log(pc.cyan(`Scanning source in ${rootDir}...`));
-    }
+    logger.info(pc.cyan(`Scanning source in ${rootDir}...`));
 
     const [schema, report] = await Promise.all([
       loadSchema(schemaPath),
@@ -117,32 +144,34 @@ export async function runScan(
       orphanedRefs: result.orphanedRefs,
       unusedSchemaKeys: result.unusedSchemaKeys,
       dynamicRefs: report.dynamic,
-      warnings: report.warnings
+      warnings: report.warnings,
     };
 
     if (options.json && !options._internal) {
-      console.log(formatJsonScan(data));
+      logger.output(formatJsonScan(data));
     } else if (!options.json && !options.silent) {
-      reportScan(data, { strict: options.strict });
+      reportScan(data, { strict: options.strict }, logger);
     }
 
-    const hasErrors = result.orphanedRefs.length > 0 || (options.strict && result.unusedSchemaKeys.length > 0);
-    return { code: hasErrors ? 1 : 0, data };
-  } catch (error: any) {
+    const hasErrors =
+      result.orphanedRefs.length > 0 || (options.strict && result.unusedSchemaKeys.length > 0);
+    return { code: hasErrors ? ExitCode.Drift : ExitCode.Ok, data };
+  } catch (error: unknown) {
+    const message = toError(error).message;
     const errorData: ScanReportData = {
       rootDir: cwd,
       orphanedRefs: [],
       unusedSchemaKeys: [],
       dynamicRefs: [],
       warnings: [],
-      error: error.message
+      error: message,
     };
 
     if (options.json && !options._internal) {
-      console.log(formatJsonScan(errorData));
+      logger.output(formatJsonScan(errorData));
     } else if (!options.json && !options.silent) {
-      console.error(pc.red(`✖ Scan failed: ${error.message}`));
+      logger.error(pc.red(`✖ Scan failed: ${message}`));
     }
-    return { code: 2, data: errorData };
+    return { code: ExitCode.RuntimeError, data: errorData };
   }
 }

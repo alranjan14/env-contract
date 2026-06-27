@@ -1,3 +1,6 @@
+// NOTE: navigates Zod's internal `_def`/`def` shapes (which differ across v3/v4
+// and are not publicly typed). `any` here is quarantined in eslint.config.js;
+// see M4 in TODO.md for the typed-introspection follow-up. Public boundary is `unknown`.
 import type { Schema, SchemaEntry } from "./types.js";
 
 type ZodLikeSchema = {
@@ -10,7 +13,10 @@ type ZodLikeSchema = {
   constructor?: { name?: string };
 };
 
-export function introspectZodSchema(obj: ZodLikeSchema, scope: "server" | "client" = "server"): Schema {
+export function introspectZodSchema(
+  obj: ZodLikeSchema,
+  scope: "server" | "client" = "server",
+): Schema {
   const entries: SchemaEntry[] = [];
   const shape = getObjectShape(obj) ?? {};
 
@@ -21,7 +27,11 @@ export function introspectZodSchema(obj: ZodLikeSchema, scope: "server" | "clien
   return { entries };
 }
 
-function introspectZodType(key: string, type: ZodLikeSchema, scope: "server" | "client"): SchemaEntry {
+function introspectZodType(
+  key: string,
+  type: ZodLikeSchema,
+  scope: "server" | "client",
+): SchemaEntry {
   let current = type;
   let description: string | undefined = current.description;
   let defaultValue: any = undefined;
@@ -57,7 +67,13 @@ function introspectZodType(key: string, type: ZodLikeSchema, scope: "server" | "
       continue;
     }
 
-    if (typeName === "ZodEffects" || typeName === "effects" || typeName === "preprocess" || typeName === "transform" || typeName === "refine") {
+    if (
+      typeName === "ZodEffects" ||
+      typeName === "effects" ||
+      typeName === "preprocess" ||
+      typeName === "transform" ||
+      typeName === "refine"
+    ) {
       current = def.schema;
       continue;
     }
@@ -90,7 +106,7 @@ function getFriendlyTypeName(type: ZodLikeSchema): string {
   if (!type) return "unknown";
   const def = getDef(type);
   if (!def) return "unknown";
-  
+
   const typeName = def.typeName || def.type;
 
   if (!typeName) return "unknown";
@@ -133,9 +149,7 @@ function isZodObject(obj: any): boolean {
 
   return (
     shape !== undefined &&
-    (typeName === "ZodObject" ||
-      typeName === "object" ||
-      obj.constructor?.name === "ZodObject") &&
+    (typeName === "ZodObject" || typeName === "object" || obj.constructor?.name === "ZodObject") &&
     (typeof obj.parse === "function" || typeof obj.safeParse === "function")
   );
 }

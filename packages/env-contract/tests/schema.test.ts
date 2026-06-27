@@ -24,7 +24,7 @@ describe("Schema Auto-detection & Loading Reliability", () => {
     it("should resolve src/env.ts first if it exists", async () => {
       const caseDir = path.join(tempDir, "case1");
       await fs.mkdir(path.join(caseDir, "src/env"), { recursive: true });
-      
+
       await fs.writeFile(path.join(caseDir, "src/env.ts"), "export const env = {}");
       await fs.writeFile(path.join(caseDir, "src/env/index.ts"), "export const env = {}");
       await fs.writeFile(path.join(caseDir, "env.ts"), "export const env = {}");
@@ -36,7 +36,7 @@ describe("Schema Auto-detection & Loading Reliability", () => {
     it("should resolve src/env/index.ts second if src/env.ts does not exist", async () => {
       const caseDir = path.join(tempDir, "case2");
       await fs.mkdir(path.join(caseDir, "src/env"), { recursive: true });
-      
+
       await fs.writeFile(path.join(caseDir, "src/env/index.ts"), "export const env = {}");
       await fs.writeFile(path.join(caseDir, "env.ts"), "export const env = {}");
 
@@ -47,7 +47,7 @@ describe("Schema Auto-detection & Loading Reliability", () => {
     it("should resolve env.ts third if src candidate files do not exist", async () => {
       const caseDir = path.join(tempDir, "case3");
       await fs.mkdir(caseDir, { recursive: true });
-      
+
       await fs.writeFile(path.join(caseDir, "env.ts"), "export const env = {}");
 
       const resolved = await findSchemaFile(caseDir);
@@ -149,19 +149,19 @@ describe("Schema Auto-detection & Loading Reliability", () => {
         _server: {
           _def: { typeName: "ZodObject" },
           shape: {
-            DATABASE_URL: { _def: { typeName: "ZodString", checks: [{ kind: "url" }] } }
+            DATABASE_URL: { _def: { typeName: "ZodString", checks: [{ kind: "url" }] } },
           },
           parse: () => {},
-          safeParse: () => {}
+          safeParse: () => {},
         },
         _client: {
           _def: { typeName: "ZodObject" },
           shape: {
-            NEXT_PUBLIC_API_URL: { _def: { typeName: "ZodString", checks: [{ kind: "url" }] } }
+            NEXT_PUBLIC_API_URL: { _def: { typeName: "ZodString", checks: [{ kind: "url" }] } },
           },
           parse: () => {},
-          safeParse: () => {}
-        }
+          safeParse: () => {},
+        },
       };
 
       expect(t3EnvLoader.matches(mockT3Schema)).toBe(true);
@@ -171,13 +171,13 @@ describe("Schema Auto-detection & Loading Reliability", () => {
         key: "DATABASE_URL",
         type: "url",
         optional: false,
-        scope: "server"
+        scope: "server",
       });
       expect(schema.entries).toContainEqual({
         key: "NEXT_PUBLIC_API_URL",
         type: "url",
         optional: false,
-        scope: "client"
+        scope: "client",
       });
     });
   });
@@ -219,7 +219,7 @@ describe("Schema Auto-detection & Loading Reliability", () => {
         key: "DATABASE_URL",
         type: "url",
         optional: false,
-        scope: "server"
+        scope: "server",
       });
     });
   });

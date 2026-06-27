@@ -79,7 +79,7 @@ describe("AST Scanner Golden Patterns", () => {
     expect(report.warnings).toHaveLength(0);
 
     // Verify References
-    const keys = report.references.map(r => r.key);
+    const keys = report.references.map((r) => r.key);
     expect(keys).toContain("DATABASE_URL");
     expect(keys).toContain("PORT");
     expect(keys).toContain("JWT_SECRET");
@@ -92,21 +92,21 @@ describe("AST Scanner Golden Patterns", () => {
     expect(keys).toContain("VITE_CLIENT_KEY");
 
     // Verify kinds
-    const stripeKeyRef = report.references.find(r => r.key === "STRIPE_KEY");
+    const stripeKeyRef = report.references.find((r) => r.key === "STRIPE_KEY");
     expect(stripeKeyRef?.kind).toBe("destructure");
 
-    const dbRef = report.references.find(r => r.key === "DATABASE_URL");
+    const dbRef = report.references.find((r) => r.key === "DATABASE_URL");
     expect(dbRef?.kind).toBe("process.env");
 
-    const viteRef = report.references.find(r => r.key === "VITE_API_URL");
+    const viteRef = report.references.find((r) => r.key === "VITE_API_URL");
     expect(viteRef?.kind).toBe("import.meta.env");
 
     // Verify Dynamic References
     expect(report.dynamic).toHaveLength(5); // 2 dynamic accesses + Object.keys, values, entries
-    const snippets = report.dynamic.map(d => d.snippet);
-    expect(snippets.some(s => s.includes("process.env[dynamicKey]"))).toBe(true);
-    expect(snippets.some(s => s.includes("Object.keys(process.env)"))).toBe(true);
-    expect(snippets.some(s => s.includes("Object.entries(import.meta.env)"))).toBe(true);
+    const snippets = report.dynamic.map((d) => d.snippet);
+    expect(snippets.some((s) => s.includes("process.env[dynamicKey]"))).toBe(true);
+    expect(snippets.some((s) => s.includes("Object.keys(process.env)"))).toBe(true);
+    expect(snippets.some((s) => s.includes("Object.entries(import.meta.env)"))).toBe(true);
   });
 
   it("should return parse errors as structured warnings", async () => {

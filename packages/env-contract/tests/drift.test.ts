@@ -22,7 +22,7 @@ LATE_MANUAL_KEY=baz
 
     const managedContent = extractManagedContent(fileContent);
     expect(managedContent).not.toBeNull();
-    
+
     const parsedKeys = parseEnvKeys(managedContent!);
     expect(parsedKeys).toContain("DATABASE_URL");
     expect(parsedKeys).toContain("PORT");
@@ -98,7 +98,7 @@ PORT=
 `;
     const parsedKeys = parseEnvKeys(managedBlockContent);
     expect(parsedKeys).toEqual(["DATABASE_URL", "DATABASE_URL", "PORT"]);
-    
+
     // Deduplication test
     const uniqueKeys = Array.from(new Set(parsedKeys));
     expect(uniqueKeys).toEqual(["DATABASE_URL", "PORT"]);

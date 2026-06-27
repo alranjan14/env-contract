@@ -230,12 +230,8 @@ describe("Pretty Reporter", () => {
           { key: "DB_PASS", file: "src/db.ts", line: 12, column: 4, kind: "process.env" },
         ],
         unusedSchemaKeys: ["UNUSED_KEY"],
-        dynamicRefs: [
-          { file: "src/index.ts", line: 5, snippet: "Object.keys(process.env)" },
-        ],
-        warnings: [
-          { file: "src/bad.ts", message: "Parsing failed" },
-        ],
+        dynamicRefs: [{ file: "src/index.ts", line: 5, snippet: "Object.keys(process.env)" }],
+        warnings: [{ file: "src/bad.ts", message: "Parsing failed" }],
       };
 
       reportScan(report, { strict: true });

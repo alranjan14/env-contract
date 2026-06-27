@@ -4,7 +4,7 @@ export const END_MARKER = "# <<< env-contract:end";
 export function injectIntoContent(
   existingContent: string,
   newManagedContent: string,
-  schemaPath?: string
+  schemaPath?: string,
 ): string {
   const startIdx = existingContent.indexOf(START_MARKER);
   const endIdx = existingContent.indexOf(END_MARKER);

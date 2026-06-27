@@ -18,9 +18,9 @@ describe("valibot loader", () => {
     });
 
     const result = valibotLoader.introspect(schema);
-    
+
     expect(result.entries).toHaveLength(3);
-    
+
     expect(result.entries[0]).toEqual({
       key: "STR",
       type: "string",
@@ -41,7 +41,7 @@ describe("valibot loader", () => {
     });
 
     const result = valibotLoader.introspect(schema);
-    
+
     expect(result.entries[0]).toEqual({
       key: "OPT_NO_DEF",
       type: "string",
@@ -71,7 +71,7 @@ describe("valibot loader", () => {
     });
 
     const result = valibotLoader.introspect(schema);
-    
+
     expect(result.entries[0]).toEqual({
       key: "PIPED",
       type: "string",

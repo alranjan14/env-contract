@@ -18,10 +18,10 @@ describe("arktype loader", () => {
     });
 
     const result = arktypeLoader.introspect(schema);
-    
+
     expect(result.entries).toHaveLength(3);
-    
-    expect(result.entries.find(e => e.key === "STR")).toEqual({
+
+    expect(result.entries.find((e) => e.key === "STR")).toEqual({
       key: "STR",
       type: "string",
       description: "a string",
@@ -29,8 +29,8 @@ describe("arktype loader", () => {
       scope: "server",
     });
 
-    expect(result.entries.find(e => e.key === "NUM")?.type).toBe("number");
-    expect(result.entries.find(e => e.key === "BOOL")?.type).toBe("boolean");
+    expect(result.entries.find((e) => e.key === "NUM")?.type).toBe("number");
+    expect(result.entries.find((e) => e.key === "BOOL")?.type).toBe("boolean");
   });
 
   it("should introspect optional with default", () => {
@@ -40,8 +40,8 @@ describe("arktype loader", () => {
     });
 
     const result = arktypeLoader.introspect(schema);
-    
-    expect(result.entries.find(e => e.key === "OPT_NO_DEF")).toEqual({
+
+    expect(result.entries.find((e) => e.key === "OPT_NO_DEF")).toEqual({
       key: "OPT_NO_DEF",
       type: "string",
       description: "a string",
@@ -49,7 +49,7 @@ describe("arktype loader", () => {
       scope: "server",
     });
 
-    expect(result.entries.find(e => e.key === "OPT_WITH_DEF")).toEqual({
+    expect(result.entries.find((e) => e.key === "OPT_WITH_DEF")).toEqual({
       key: "OPT_WITH_DEF",
       type: "number",
       description: "a number",
@@ -66,8 +66,8 @@ describe("arktype loader", () => {
     });
 
     const result = arktypeLoader.introspect(schema);
-    
-    expect(result.entries.find(e => e.key === "UNION")?.type).toBe("number | string");
-    expect(result.entries.find(e => e.key === "PIPED")?.type).toContain("/^[");
+
+    expect(result.entries.find((e) => e.key === "UNION")?.type).toBe("number | string");
+    expect(result.entries.find((e) => e.key === "PIPED")?.type).toContain("/^[");
   });
 });

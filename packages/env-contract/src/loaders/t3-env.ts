@@ -1,7 +1,13 @@
-import type { Schema, SchemaEntry } from "./types.js";
+import type { Schema, SchemaEntry, SchemaLoader } from "./types.js";
 import { introspectZodSchema } from "./zod.js";
 
-export function isT3Env(obj: any): boolean {
+interface T3EnvLike {
+  _def?: unknown;
+  _server?: unknown;
+  _client?: unknown;
+}
+
+export function isT3Env(obj: unknown): boolean {
   return (
     obj !== null &&
     typeof obj === "object" &&
@@ -10,16 +16,17 @@ export function isT3Env(obj: any): boolean {
   );
 }
 
-export function introspectT3Env(obj: any): Schema {
+export function introspectT3Env(obj: unknown): Schema {
+  const env = obj as T3EnvLike;
   const entries: SchemaEntry[] = [];
 
-  if (obj._server) {
-    const serverSchema = introspectZodSchema(obj._server, "server");
+  if (env._server) {
+    const serverSchema = introspectZodSchema(env._server, "server");
     entries.push(...serverSchema.entries);
   }
 
-  if (obj._client) {
-    const clientSchema = introspectZodSchema(obj._client, "client");
+  if (env._client) {
+    const clientSchema = introspectZodSchema(env._client, "client");
     entries.push(...clientSchema.entries);
   }
 
@@ -34,7 +41,7 @@ export function introspectT3Env(obj: any): Schema {
   return { entries: uniqueEntries };
 }
 
-export const t3EnvLoader = {
+export const t3EnvLoader: SchemaLoader = {
   matches: isT3Env,
   introspect: introspectT3Env,
 };

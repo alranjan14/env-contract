@@ -2,15 +2,19 @@ import { check } from "../core/check-programmatic.js";
 import { formatJsonCheck } from "../reporters/json.js";
 import { reportCheck } from "../reporters/pretty.js";
 import { findWorkspacePackages } from "../utils/workspace.js";
+import { toError } from "../utils/errors.js";
+import { makeLogger } from "../utils/logger.js";
+import { ExitCode } from "../utils/exit-code.js";
 import type { Config } from "../config.js";
 import type { CheckReport, PackageCheckReport } from "../reporters/types.js";
 
 export async function runCheck(
   options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string },
-  _config: Config = {}
-): Promise<{ code: number }> {
+  _config: Config = {},
+): Promise<{ code: ExitCode }> {
   const cwd = options.cwd || process.cwd();
-  
+  const logger = makeLogger({ json: options.json });
+
   let checkReport: CheckReport;
 
   if (options.workspace) {
@@ -23,21 +27,23 @@ export async function runCheck(
         const pkgReport = await check({
           cwd: pkg.dir,
           strict: options.strict,
-          schema: options.schema
+          schema: options.schema,
         });
 
         if (!pkgReport.ok) ok = false;
 
         packageReports.push({
           package: pkg.dir,
-          syncDrift: pkgReport.exampleDrift.missingInExample.length > 0 || pkgReport.exampleDrift.extraInExample.length > 0,
+          syncDrift:
+            pkgReport.exampleDrift.missingInExample.length > 0 ||
+            pkgReport.exampleDrift.extraInExample.length > 0,
           exampleDrift: pkgReport.exampleDrift,
           orphanedRefs: pkgReport.orphanedRefs,
           unusedSchemaKeys: pkgReport.unusedSchemaKeys,
           dynamicRefs: pkgReport.dynamicRefs,
           warnings: pkgReport.warnings,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         ok = false;
         packageReports.push({
           package: pkg.dir,
@@ -47,7 +53,7 @@ export async function runCheck(
           unusedSchemaKeys: [],
           dynamicRefs: [],
           warnings: [],
-          error: error.message,
+          error: toError(error).message,
         });
       }
     }
@@ -62,50 +68,56 @@ export async function runCheck(
       const pkgReport = await check({
         cwd,
         strict: options.strict,
-        schema: options.schema
+        schema: options.schema,
       });
 
       checkReport = {
         ok: pkgReport.ok,
         workspace: false,
-        packages: [{
-          package: cwd,
-          syncDrift: pkgReport.exampleDrift.missingInExample.length > 0 || pkgReport.exampleDrift.extraInExample.length > 0,
-          exampleDrift: pkgReport.exampleDrift,
-          orphanedRefs: pkgReport.orphanedRefs,
-          unusedSchemaKeys: pkgReport.unusedSchemaKeys,
-          dynamicRefs: pkgReport.dynamicRefs,
-          warnings: pkgReport.warnings,
-        }],
+        packages: [
+          {
+            package: cwd,
+            syncDrift:
+              pkgReport.exampleDrift.missingInExample.length > 0 ||
+              pkgReport.exampleDrift.extraInExample.length > 0,
+            exampleDrift: pkgReport.exampleDrift,
+            orphanedRefs: pkgReport.orphanedRefs,
+            unusedSchemaKeys: pkgReport.unusedSchemaKeys,
+            dynamicRefs: pkgReport.dynamicRefs,
+            warnings: pkgReport.warnings,
+          },
+        ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       checkReport = {
         ok: false,
         workspace: false,
-        packages: [{
-          package: cwd,
-          syncDrift: false,
-          exampleDrift: { missingInExample: [], extraInExample: [] },
-          orphanedRefs: [],
-          unusedSchemaKeys: [],
-          dynamicRefs: [],
-          warnings: [],
-          error: error.message,
-        }],
+        packages: [
+          {
+            package: cwd,
+            syncDrift: false,
+            exampleDrift: { missingInExample: [], extraInExample: [] },
+            orphanedRefs: [],
+            unusedSchemaKeys: [],
+            dynamicRefs: [],
+            warnings: [],
+            error: toError(error).message,
+          },
+        ],
       };
     }
   }
 
   if (options.json) {
-    console.log(formatJsonCheck(checkReport));
+    logger.output(formatJsonCheck(checkReport));
   } else {
-    reportCheck(checkReport, { strict: options.strict });
+    reportCheck(checkReport, { strict: options.strict }, logger);
   }
 
-  const hasRuntimeError = checkReport.packages.some(p => p.error !== undefined);
+  const hasRuntimeError = checkReport.packages.some((p) => p.error !== undefined);
   if (hasRuntimeError) {
-    return { code: 2 };
+    return { code: ExitCode.RuntimeError };
   }
 
-  return { code: checkReport.ok ? 0 : 1 };
+  return { code: checkReport.ok ? ExitCode.Ok : ExitCode.Drift };
 }

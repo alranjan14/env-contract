@@ -1,6 +1,8 @@
 import pc from "picocolors";
 
-export function showDiff(oldContent: string, newContent: string) {
+// Terminal line-diff renderer for the interactive `sync` preview. (Distinct from
+// core/diff.ts, which computes the env-contract key drift.)
+export function showDiff(oldContent: string, newContent: string): void {
   const oldLines = oldContent.split("\n");
   const newLines = newContent.split("\n");
 
@@ -15,15 +17,23 @@ export function showDiff(oldContent: string, newContent: string) {
     } else {
       let matchI = -1;
       let matchJ = -1;
-      
+
       // Lookahead window to re-sync
       for (let offset = 1; offset < 20; offset++) {
-        if (i + offset < oldLines.length && j < newLines.length && oldLines[i + offset] === newLines[j]) {
+        if (
+          i + offset < oldLines.length &&
+          j < newLines.length &&
+          oldLines[i + offset] === newLines[j]
+        ) {
           matchI = i + offset;
           matchJ = j;
           break;
         }
-        if (j + offset < newLines.length && i < oldLines.length && oldLines[i] === newLines[j + offset]) {
+        if (
+          j + offset < newLines.length &&
+          i < oldLines.length &&
+          oldLines[i] === newLines[j + offset]
+        ) {
           matchI = i;
           matchJ = j + offset;
           break;

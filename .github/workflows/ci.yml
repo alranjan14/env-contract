@@ -1,10 +1,14 @@
 name: CI
 
+# Triggers cover `dev` (active working branch), `master` (current default), and
+# `main` (so CI keeps working if the default branch is renamed). Trim the ones you
+# don't use once the branching model is settled.
 on:
   push:
-    branches: [main]
+    branches: [main, master, dev]
   pull_request:
-    branches: [main]
+    branches: [main, master, dev]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -21,10 +25,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck
       - run: pnpm run lint
+      - run: pnpm run format:check
       - run: pnpm run build
-      - run: pnpm run test
+      - run: pnpm run test:coverage

@@ -20,3 +20,6 @@ Thumbs.db
 .tsup/
 .vitest/
 scratch/
+
+# Local working/planning docs (not committed)
+PRODUCTION_READINESS.md

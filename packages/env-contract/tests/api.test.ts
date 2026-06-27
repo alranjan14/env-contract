@@ -30,7 +30,7 @@ describe("Programmatic API Alignment", () => {
           parse: () => {},
           safeParse: () => {}
         };
-        `
+        `,
       );
 
       const schema = await loadSchema({ path: "env.ts", cwd: caseDir });
@@ -42,7 +42,7 @@ describe("Programmatic API Alignment", () => {
   describe("generateExample options.managedBlock", () => {
     it("should return raw content by default", () => {
       const schema = {
-        entries: [{ key: "PORT", type: "number", optional: false, scope: "server" as const }]
+        entries: [{ key: "PORT", type: "number", optional: false, scope: "server" as const }],
       };
       const result = generateExample(schema);
       expect(result).not.toContain("env-contract:start");
@@ -51,7 +51,7 @@ describe("Programmatic API Alignment", () => {
 
     it("should return content wrapped in managed block markers when managedBlock option is true", () => {
       const schema = {
-        entries: [{ key: "PORT", type: "number", optional: false, scope: "server" as const }]
+        entries: [{ key: "PORT", type: "number", optional: false, scope: "server" as const }],
       };
       const result = generateExample(schema, { managedBlock: true });
       expect(result).toContain("# >>> env-contract:start (do not edit this block manually)");
@@ -70,7 +70,7 @@ describe("Programmatic API Alignment", () => {
         const db = process.env.DATABASE_URL;
         const port = process.env.PORT;
         const anotherDb = process.env.DATABASE_URL;
-        `
+        `,
       );
 
       const result = await scan({ root: caseDir, patterns: ["**/*.ts"] });
@@ -99,7 +99,7 @@ describe("Programmatic API Alignment", () => {
           parse: () => {},
           safeParse: () => {}
         };
-        `
+        `,
       );
 
       // Create .env.example with correct block
@@ -114,10 +114,7 @@ DATABASE_URL=
       await fs.writeFile(path.join(caseDir, ".env.example"), exampleContent);
 
       // Create index.ts referencing it
-      await fs.writeFile(
-        path.join(caseDir, "index.ts"),
-        `const db = process.env.DATABASE_URL;`
-      );
+      await fs.writeFile(path.join(caseDir, "index.ts"), `const db = process.env.DATABASE_URL;`);
 
       // Configure config
       await fs.writeFile(
@@ -128,7 +125,7 @@ DATABASE_URL=
           exampleFile: ".env.example",
           rootDir: "."
         };
-        `
+        `,
       );
 
       const report = await check({ cwd: caseDir });
@@ -151,7 +148,7 @@ DATABASE_URL=
           parse: () => {},
           safeParse: () => {}
         };
-        `
+        `,
       );
       // Empty example
       await fs.writeFile(path.join(caseDir, ".env.example"), "");
@@ -165,7 +162,7 @@ DATABASE_URL=
           exampleFile: ".env.example",
           rootDir: "."
         };
-        `
+        `,
       );
 
       const report = await check({ cwd: caseDir });

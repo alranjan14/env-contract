@@ -50,7 +50,7 @@ describe(".env.example Generation and Formatting", () => {
       // Both SERVER_VAR and UNKNOWN_VAR should be in server block (sorted alphabetically)
       expect(idxServer).toBeGreaterThan(-1);
       expect(idxUnknown).toBeGreaterThan(-1);
-      
+
       // Sorted alphabetically: SERVER_VAR then UNKNOWN_VAR
       expect(idxUnknown).toBeGreaterThan(idxServer);
 
@@ -61,7 +61,13 @@ describe(".env.example Generation and Formatting", () => {
     it("should format comments strictly using description if present, else type name", () => {
       const mockSchema: Schema = {
         entries: [
-          { key: "WITH_DESC", type: "string", optional: false, scope: "server", description: "This is a description" },
+          {
+            key: "WITH_DESC",
+            type: "string",
+            optional: false,
+            scope: "server",
+            description: "This is a description",
+          },
           { key: "WITHOUT_DESC", type: "url", optional: false, scope: "server" },
         ],
       };
@@ -75,9 +81,30 @@ describe(".env.example Generation and Formatting", () => {
     it("should format default values correctly in comments using JSON.stringify", () => {
       const mockSchema: Schema = {
         entries: [
-          { key: "PORT", type: "number", optional: true, scope: "server", description: "HTTP Port", default: 3000 },
-          { key: "HOST", type: "string", optional: true, scope: "server", description: "Host string", default: "localhost" },
-          { key: "SECURE", type: "boolean", optional: true, scope: "server", description: "Is SSL enabled", default: true },
+          {
+            key: "PORT",
+            type: "number",
+            optional: true,
+            scope: "server",
+            description: "HTTP Port",
+            default: 3000,
+          },
+          {
+            key: "HOST",
+            type: "string",
+            optional: true,
+            scope: "server",
+            description: "Host string",
+            default: "localhost",
+          },
+          {
+            key: "SECURE",
+            type: "boolean",
+            optional: true,
+            scope: "server",
+            description: "Is SSL enabled",
+            default: true,
+          },
         ],
       };
 
@@ -90,8 +117,20 @@ describe(".env.example Generation and Formatting", () => {
     it("should format optional keys with the em-dash spacer and tag", () => {
       const mockSchema: Schema = {
         entries: [
-          { key: "OPTIONAL_VAR", type: "string", optional: true, scope: "server", description: "Optional variable" },
-          { key: "REQUIRED_VAR", type: "string", optional: false, scope: "server", description: "Required variable" },
+          {
+            key: "OPTIONAL_VAR",
+            type: "string",
+            optional: true,
+            scope: "server",
+            description: "Optional variable",
+          },
+          {
+            key: "REQUIRED_VAR",
+            type: "string",
+            optional: false,
+            scope: "server",
+            description: "Required variable",
+          },
         ],
       };
 
@@ -102,9 +141,7 @@ describe(".env.example Generation and Formatting", () => {
 
     it("should never write default values on the right-hand side of assignments", () => {
       const mockSchema: Schema = {
-        entries: [
-          { key: "PORT", type: "number", optional: true, scope: "server", default: 3000 },
-        ],
+        entries: [{ key: "PORT", type: "number", optional: true, scope: "server", default: 3000 }],
       };
 
       const result = generateExample(mockSchema);

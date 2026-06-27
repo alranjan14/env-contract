@@ -24,7 +24,7 @@ describe("generate-example", () => {
     };
 
     const result = generateExample(schema);
-    
+
     expect(result).toContain("# Database connection");
     expect(result).toContain("DB_URL=");
     expect(result).toContain("# number (default: 3000) — Optional");
@@ -41,10 +41,10 @@ describe("generate-example", () => {
 
     const result = generateExample(schema);
     const lines = result.split("\n");
-    
-    const serverIdx = lines.findIndex(l => l.includes("SERVER_VAR"));
-    const clientIdx = lines.findIndex(l => l.includes("CLIENT_VAR"));
-    
+
+    const serverIdx = lines.findIndex((l) => l.includes("SERVER_VAR"));
+    const clientIdx = lines.findIndex((l) => l.includes("CLIENT_VAR"));
+
     expect(serverIdx).toBeLessThan(clientIdx);
   });
 });

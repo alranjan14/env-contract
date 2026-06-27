@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["src/**/*", "tests/**/*"],
+  "comment": "tests/fixtures are sample projects (some intentionally malformed, e.g. parse-error) used as runtime test data — they are not part of this project's type surface.",
+  "exclude": ["node_modules", "dist", "tests/fixtures"]
+}

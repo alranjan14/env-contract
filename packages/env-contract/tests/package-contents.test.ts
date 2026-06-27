@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import path from "node:path";
 
 const PACKAGE_DIR = path.resolve(__dirname, "..");
@@ -18,12 +18,16 @@ interface PackResult {
 }
 
 function runNpmPack(): PackResult {
-  const output = execFileSync("npm", ["pack", "--dry-run", "--json"], {
+  // Run through a shell so `npm` resolves to npm.cmd on Windows. execFileSync
+  // can't spawn .cmd files without a shell (EINVAL since Node's CVE-2024-27980 fix).
+  const output = execSync("npm pack --dry-run --json", {
     cwd: PACKAGE_DIR,
     encoding: "utf-8",
   });
   const results = JSON.parse(output) as PackResult[];
-  return results[0];
+  const result = results[0];
+  if (!result) throw new Error("`npm pack --json` returned no results");
+  return result;
 }
 
 describe("Package contents inspection", () => {
@@ -50,7 +54,7 @@ describe("Package contents inspection", () => {
         f.includes(".test.") ||
         f.endsWith("test_cli_fail.ts") ||
         f.endsWith("test_template.ts") ||
-        f.endsWith("test-output.txt")
+        f.endsWith("test-output.txt"),
     );
 
     expect(invalidFiles).toEqual([]);
@@ -58,7 +62,7 @@ describe("Package contents inspection", () => {
     // 4. Ensure all files belong to allowed top-level directories/files
     const allowedRoots = ["dist/", "LICENSE", "CHANGELOG.md", "README.md", "package.json"];
     const unexpectedFiles = files.filter(
-      (f) => !allowedRoots.some((allowed) => f === allowed || f.startsWith(allowed))
+      (f) => !allowedRoots.some((allowed) => f === allowed || f.startsWith(allowed)),
     );
 
     expect(unexpectedFiles).toEqual([]);

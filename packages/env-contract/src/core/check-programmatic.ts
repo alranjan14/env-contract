@@ -1,14 +1,21 @@
 import { findSchemaFile } from "../utils/file.js";
 import { loadSchema } from "./load-schema.js";
 import { extractManagedContent } from "../utils/managed-block.js";
-import { parseEnvKeys, diff } from "./diff.js";
+import { parseEnvKeys, diff, computeKeyDrift } from "./diff.js";
 import { scanSource } from "./scan-source.js";
 import { resolveConfig } from "../config.js";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { errorCode } from "../utils/errors.js";
 import type { Reference, DynamicReference } from "./scan-source.js";
 
-export async function check(options: { cwd?: string | undefined; strict?: boolean | undefined; schema?: string | undefined } = {}): Promise<{
+export async function check(
+  options: {
+    cwd?: string | undefined;
+    strict?: boolean | undefined;
+    schema?: string | undefined;
+  } = {},
+): Promise<{
   ok: boolean;
   exampleDrift: {
     missingInExample: string[];
@@ -22,20 +29,24 @@ export async function check(options: { cwd?: string | undefined; strict?: boolea
   const cwd = options.cwd || process.cwd();
   const config = await resolveConfig(cwd);
 
-  const schemaPath = options.schema 
-    ? path.resolve(cwd, options.schema) 
-    : (config.schema ? path.resolve(cwd, config.schema) : await findSchemaFile(cwd));
+  const schemaPath = options.schema
+    ? path.resolve(cwd, options.schema)
+    : config.schema
+      ? path.resolve(cwd, config.schema)
+      : await findSchemaFile(cwd);
 
   const schema = await loadSchema(schemaPath);
-  
+
   // 1. Sync check
-  const exampleFile = config.exampleFile ? path.resolve(cwd, config.exampleFile) : path.resolve(cwd, ".env.example");
-  
+  const exampleFile = config.exampleFile
+    ? path.resolve(cwd, config.exampleFile)
+    : path.resolve(cwd, ".env.example");
+
   let existingContent = "";
   try {
     existingContent = await fs.readFile(exampleFile, "utf-8");
-  } catch (e: any) {
-    if (e.code !== "ENOENT") throw e;
+  } catch (e: unknown) {
+    if (errorCode(e) !== "ENOENT") throw e;
   }
 
   const managedContent = extractManagedContent(existingContent);
@@ -43,24 +54,11 @@ export async function check(options: { cwd?: string | undefined; strict?: boolea
   const schemaKeys = schema.entries.map((e) => e.key);
   const ignoredKeys = new Set(config.ignoreKeys || []);
 
-  const existingManagedKeySet = new Set(existingManagedKeys);
-  const schemaKeySet = new Set(schemaKeys);
-
-  const missingInExample: string[] = [];
-  const extraInExample: string[] = [];
-
-  for (const key of schemaKeys) {
-    if (!existingManagedKeySet.has(key) && !ignoredKeys.has(key)) {
-      missingInExample.push(key);
-    }
-  }
-
-  const uniqueExistingManagedKeys = Array.from(existingManagedKeySet);
-  for (const key of uniqueExistingManagedKeys) {
-    if (!schemaKeySet.has(key) && !ignoredKeys.has(key)) {
-      extraInExample.push(key);
-    }
-  }
+  const { missing: missingInExample, extra: extraInExample } = computeKeyDrift(
+    schemaKeys,
+    existingManagedKeys,
+    ignoredKeys,
+  );
 
   const hasSyncDrift = missingInExample.length > 0 || extraInExample.length > 0;
 
@@ -73,19 +71,21 @@ export async function check(options: { cwd?: string | undefined; strict?: boolea
   if (exclude) scanOptions.exclude = exclude;
 
   const report = await scanSource(rootDir, scanOptions);
-  
+
   const diffResult = diff(schema, [], report.references, {
     strict: options.strict !== undefined ? options.strict : false,
     ignoreKeys: config.ignoreKeys || [],
   });
 
-  const hasScanDrift = diffResult.orphanedRefs.length > 0 || (options.strict && diffResult.unusedSchemaKeys.length > 0);
+  const hasScanDrift =
+    diffResult.orphanedRefs.length > 0 ||
+    (options.strict && diffResult.unusedSchemaKeys.length > 0);
 
   return {
     ok: !hasSyncDrift && !hasScanDrift,
     exampleDrift: {
       missingInExample,
-      extraInExample
+      extraInExample,
     },
     orphanedRefs: diffResult.orphanedRefs,
     unusedSchemaKeys: diffResult.unusedSchemaKeys,

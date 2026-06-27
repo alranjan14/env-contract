@@ -14,7 +14,7 @@ export function diff(
   schema: Schema,
   exampleKeys: string[],
   scannerRefs: Reference[],
-  options: { strict?: boolean; ignoreKeys?: string[] } = {}
+  options: { strict?: boolean; ignoreKeys?: string[] } = {},
 ): DiffReport {
   const schemaKeys = new Set(schema.entries.map((e) => e.key));
   const exampleKeySet = new Set(exampleKeys);
@@ -61,10 +61,32 @@ export function diff(
   return report;
 }
 
+/**
+ * The single source of truth for example-file drift: which schema keys are
+ * missing from a set of present keys, and which present keys are not in the
+ * schema. Both `sync` and `check` call this so the rule can never diverge.
+ */
+export function computeKeyDrift(
+  schemaKeys: string[],
+  presentKeys: string[],
+  ignore: ReadonlySet<string>,
+): { missing: string[]; extra: string[] } {
+  const present = new Set(presentKeys);
+  const schema = new Set(schemaKeys);
+  return {
+    missing: schemaKeys.filter((k) => !present.has(k) && !ignore.has(k)),
+    extra: [...present].filter((k) => !schema.has(k) && !ignore.has(k)),
+  };
+}
+
 export function parseEnvKeys(content: string): string[] {
   return content
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith("#"))
-    .map((line) => line.split("=")[0]!.trim());
+    .map((line) => {
+      // Support `export KEY=value` in addition to plain `KEY=value`.
+      const withoutExport = line.startsWith("export ") ? line.slice("export ".length) : line;
+      return withoutExport.split("=")[0]!.trim();
+    });
 }

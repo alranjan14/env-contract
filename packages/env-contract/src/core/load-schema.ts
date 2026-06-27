@@ -5,12 +5,13 @@ import { zodLoader } from "../loaders/zod.js";
 import { valibotLoader } from "../loaders/valibot.js";
 import { arktypeLoader } from "../loaders/arktype.js";
 import type { Schema } from "../loaders/types.js";
+import { toError, errorCode } from "../utils/errors.js";
 
 const registeredLoaders = [t3EnvLoader, zodLoader, valibotLoader, arktypeLoader];
 
 export async function loadSchema(
   pathOrOptions: string | { path: string; cwd?: string },
-  cwdFallback?: string
+  cwdFallback?: string,
 ): Promise<Schema> {
   let schemaPath: string;
   let cwd = cwdFallback || process.cwd();
@@ -24,9 +25,7 @@ export async function loadSchema(
     schemaPath = pathOrOptions;
   }
 
-  const absolutePath = path.isAbsolute(schemaPath) 
-    ? schemaPath 
-    : path.resolve(cwd, schemaPath);
+  const absolutePath = path.isAbsolute(schemaPath) ? schemaPath : path.resolve(cwd, schemaPath);
 
   const jiti = createJiti(import.meta.url, {
     interopDefault: true,
@@ -34,8 +33,8 @@ export async function loadSchema(
   });
 
   try {
-    const mod = await jiti.import(absolutePath) as any;
-    
+    const mod = await jiti.import<Record<string, unknown>>(absolutePath);
+
     // Sort keys to prioritize explicit naming conventions
     const keys = Object.keys(mod);
     const prioritized = ["envSchema", "env", "default"];
@@ -62,12 +61,15 @@ export async function loadSchema(
     }
 
     throw new Error(`Could not find a valid schema exported from ${schemaPath}`);
-  } catch (error: any) {
-    if (error.code === "MODULE_NOT_FOUND") {
+  } catch (error: unknown) {
+    if (errorCode(error) === "MODULE_NOT_FOUND") {
       throw new Error(`Schema file not found at ${absolutePath}`);
     }
-    if (error.message && !error.message.includes("Could not find a valid")) {
-      throw new Error(`Failed to load schema from ${schemaPath}.\n👉 Suggestion: Check the file for syntax or TypeScript errors.\n\nUnderlying error:\n${error.message}`);
+    const message = toError(error).message;
+    if (message && !message.includes("Could not find a valid")) {
+      throw new Error(
+        `Failed to load schema from ${schemaPath}.\n👉 Suggestion: Check the file for syntax or TypeScript errors.\n\nUnderlying error:\n${message}`,
+      );
     }
     throw error;
   }

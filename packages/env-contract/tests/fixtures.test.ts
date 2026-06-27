@@ -5,6 +5,7 @@ import { loadSchema, scan, check } from "../src/index.js";
 import { runSync } from "../src/commands/sync.js";
 import { runScan } from "../src/commands/scan.js";
 import { runCheck } from "../src/commands/check.js";
+import type { ScanReportData } from "../src/reporters/types.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = path.resolve(__dirname, "./fixtures");
@@ -16,7 +17,7 @@ describe("Realistic Fixtures Integrations (P2)", () => {
     it("should load the plain Zod schema correctly", async () => {
       const schemaPath = path.join(cwd, "src/env.ts");
       const result = await loadSchema(schemaPath);
-      
+
       expect(result.entries).toHaveLength(3);
       expect(result.entries).toContainEqual({
         key: "PORT",
@@ -152,14 +153,15 @@ describe("Realistic Fixtures Integrations (P2)", () => {
 
       expect(result.code).toBe(0);
       expect(result.data).toHaveLength(2);
-      
-      const webRep = result.data.find((r: any) => r.package.endsWith("apps/web"));
-      const apiRep = result.data.find((r: any) => r.package.endsWith("packages/api"));
+
+      const reports = result.data as ScanReportData[];
+      const webRep = reports.find((r) => r.package?.endsWith(path.join("apps", "web")));
+      const apiRep = reports.find((r) => r.package?.endsWith(path.join("packages", "api")));
 
       expect(webRep).toBeDefined();
-      expect(webRep.orphanedRefs).toHaveLength(0);
+      expect(webRep?.orphanedRefs).toHaveLength(0);
       expect(apiRep).toBeDefined();
-      expect(apiRep.orphanedRefs).toHaveLength(0);
+      expect(apiRep?.orphanedRefs).toHaveLength(0);
     });
 
     it("should verify aggregated workspace checks correctly", async () => {
