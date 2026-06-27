@@ -1,0 +1,4 @@
+# Force LF line endings for text files on every platform. Without this, the
+# Windows CI runner checks files out as CRLF, and `prettier --check` (endOfLine
+# "lf") fails `format:check` on every file.
+* text=auto eol=lf
