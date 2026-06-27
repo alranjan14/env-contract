@@ -8,6 +8,14 @@ const require = createRequire(import.meta.url);
 const CLI_PATH = path.resolve(__dirname, "../dist/cli.js");
 const TMP_DIR = path.resolve(__dirname, "../tmp-e2e");
 
+interface ExecError {
+  status: number | null;
+  stdout: Buffer;
+  stderr: Buffer;
+}
+// execSync throws an Error augmented with the child's stdout/stderr/status.
+const execErr = (e: unknown): ExecError => e as ExecError;
+
 describe("CLI E2E", () => {
   beforeAll(async () => {
     await fs.mkdir(TMP_DIR, { recursive: true });
@@ -76,7 +84,8 @@ export const schema = z.object({
         env: { ...process.env },
         stdio: "pipe"
       });
-    } catch (e: any) {
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
       console.log("E2E SYNC ERROR:", e.stdout?.toString(), e.stderr?.toString());
       throw e;
     }
@@ -147,7 +156,8 @@ export const schema = z.object({
         env: { ...process.env },
         stdio: "pipe"
       }).toString();
-    } catch (e: any) {
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
       stdout = e.stdout.toString(); // Will exit 1 because of syncDrift (no .env.example)
     }
 
@@ -231,7 +241,8 @@ ANOTHER_MANUAL_VAR=456
     let threw = false;
     try {
       execSync(`node ${CLI_PATH} sync --check`, { cwd: testDir, stdio: "pipe" });
-    } catch (e: any) {
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
       threw = true;
       expect(e.status).toBe(1);
     }
@@ -260,7 +271,8 @@ ANOTHER_MANUAL_VAR=456
     let stdout = "";
     try {
       stdout = execSync(`node ${CLI_PATH} scan`, { cwd: testDir, stdio: "pipe" }).toString();
-    } catch (e: any) {
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
       threw = true;
       stdout = e.stdout.toString() + e.stderr.toString();
       expect(e.status).toBe(1);
@@ -294,7 +306,8 @@ ANOTHER_MANUAL_VAR=456
     let strictOutput = "";
     try {
       strictOutput = execSync(`node ${CLI_PATH} scan --strict`, { cwd: testDir, stdio: "pipe" }).toString();
-    } catch (e: any) {
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
       threw = true;
       strictOutput = e.stdout.toString() + e.stderr.toString();
       expect(e.status).toBe(1);
@@ -332,7 +345,8 @@ ANOTHER_MANUAL_VAR=456
     let stdout = "";
     try {
       stdout = execSync(`node ${CLI_PATH} check`, { cwd: testDir, stdio: "pipe" }).toString();
-    } catch (e: any) {
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
       threw = true;
       stdout = e.stdout.toString() + e.stderr.toString();
       expect(e.status).toBe(1);
@@ -359,7 +373,8 @@ ANOTHER_MANUAL_VAR=456
     let driftStdout = "";
     try {
       driftStdout = execSync(`node ${CLI_PATH} check --json`, { cwd: testDir, stdio: "pipe" }).toString();
-    } catch (e: any) {
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
       driftStdout = e.stdout.toString();
       expect(e.status).toBe(1);
     }
@@ -377,7 +392,8 @@ ANOTHER_MANUAL_VAR=456
     let errorStdout = "";
     try {
       errorStdout = execSync(`node ${CLI_PATH} check --json --schema src/does-not-exist.ts`, { cwd: testDir, stdio: "pipe" }).toString();
-    } catch (e: any) {
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
       errorStdout = e.stdout.toString();
       expect(e.status).toBe(2);
     }

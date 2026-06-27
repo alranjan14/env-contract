@@ -1,11 +1,12 @@
 import { findSchemaFile } from "../utils/file.js";
 import { loadSchema } from "./load-schema.js";
 import { extractManagedContent } from "../utils/managed-block.js";
-import { parseEnvKeys, diff } from "./diff.js";
+import { parseEnvKeys, diff, computeKeyDrift } from "./diff.js";
 import { scanSource } from "./scan-source.js";
 import { resolveConfig } from "../config.js";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { errorCode } from "../utils/errors.js";
 import type { Reference, DynamicReference } from "./scan-source.js";
 
 export async function check(options: { cwd?: string | undefined; strict?: boolean | undefined; schema?: string | undefined } = {}): Promise<{
@@ -34,8 +35,8 @@ export async function check(options: { cwd?: string | undefined; strict?: boolea
   let existingContent = "";
   try {
     existingContent = await fs.readFile(exampleFile, "utf-8");
-  } catch (e: any) {
-    if (e.code !== "ENOENT") throw e;
+  } catch (e: unknown) {
+    if (errorCode(e) !== "ENOENT") throw e;
   }
 
   const managedContent = extractManagedContent(existingContent);
@@ -43,24 +44,11 @@ export async function check(options: { cwd?: string | undefined; strict?: boolea
   const schemaKeys = schema.entries.map((e) => e.key);
   const ignoredKeys = new Set(config.ignoreKeys || []);
 
-  const existingManagedKeySet = new Set(existingManagedKeys);
-  const schemaKeySet = new Set(schemaKeys);
-
-  const missingInExample: string[] = [];
-  const extraInExample: string[] = [];
-
-  for (const key of schemaKeys) {
-    if (!existingManagedKeySet.has(key) && !ignoredKeys.has(key)) {
-      missingInExample.push(key);
-    }
-  }
-
-  const uniqueExistingManagedKeys = Array.from(existingManagedKeySet);
-  for (const key of uniqueExistingManagedKeys) {
-    if (!schemaKeySet.has(key) && !ignoredKeys.has(key)) {
-      extraInExample.push(key);
-    }
-  }
+  const { missing: missingInExample, extra: extraInExample } = computeKeyDrift(
+    schemaKeys,
+    existingManagedKeys,
+    ignoredKeys,
+  );
 
   const hasSyncDrift = missingInExample.length > 0 || extraInExample.length > 0;
 

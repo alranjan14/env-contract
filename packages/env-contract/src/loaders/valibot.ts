@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any --
+ * Navigates Valibot's internal action/pipe shapes, which are not publicly typed.
+ * Typed introspection is tracked as M4 in TODO.md.
+ */
 import type { Schema, SchemaEntry } from "./types.js";
 
 export function introspectValibotSchema(obj: any, scope: "server" | "client" = "server"): Schema {

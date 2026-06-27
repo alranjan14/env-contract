@@ -2,6 +2,7 @@ import { check } from "../core/check-programmatic.js";
 import { formatJsonCheck } from "../reporters/json.js";
 import { reportCheck } from "../reporters/pretty.js";
 import { findWorkspacePackages } from "../utils/workspace.js";
+import { toError } from "../utils/errors.js";
 import type { Config } from "../config.js";
 import type { CheckReport, PackageCheckReport } from "../reporters/types.js";
 
@@ -37,7 +38,7 @@ export async function runCheck(
           dynamicRefs: pkgReport.dynamicRefs,
           warnings: pkgReport.warnings,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         ok = false;
         packageReports.push({
           package: pkg.dir,
@@ -47,7 +48,7 @@ export async function runCheck(
           unusedSchemaKeys: [],
           dynamicRefs: [],
           warnings: [],
-          error: error.message,
+          error: toError(error).message,
         });
       }
     }
@@ -78,7 +79,7 @@ export async function runCheck(
           warnings: pkgReport.warnings,
         }],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       checkReport = {
         ok: false,
         workspace: false,
@@ -90,7 +91,7 @@ export async function runCheck(
           unusedSchemaKeys: [],
           dynamicRefs: [],
           warnings: [],
-          error: error.message,
+          error: toError(error).message,
         }],
       };
     }

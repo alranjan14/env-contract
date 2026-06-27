@@ -23,7 +23,9 @@ function runNpmPack(): PackResult {
     encoding: "utf-8",
   });
   const results = JSON.parse(output) as PackResult[];
-  return results[0];
+  const result = results[0];
+  if (!result) throw new Error("`npm pack --json` returned no results");
+  return result;
 }
 
 describe("Package contents inspection", () => {

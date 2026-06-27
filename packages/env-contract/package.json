@@ -49,7 +49,7 @@
     "test": "vitest run",
     "check-package": "vitest run tests/package-contents.test.ts",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
     "prepublishOnly": "npm run typecheck && npm run lint && npm run build && npm run test"
   },
   "dependencies": {

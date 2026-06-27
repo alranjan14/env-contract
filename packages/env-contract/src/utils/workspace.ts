@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { errorCode } from "./errors.js";
 
 export interface WorkspacePackage {
   dir: string;
@@ -221,8 +222,9 @@ export async function findWorkspacePackages(rootDir: string): Promise<WorkspaceP
     let entries;
     try {
       entries = await fs.readdir(dir, { withFileTypes: true });
-    } catch (e: any) {
-      if (e.code === "ENOENT" || e.code === "EACCES") return;
+    } catch (e: unknown) {
+      const code = errorCode(e);
+      if (code === "ENOENT" || code === "EACCES") return;
       throw e;
     }
 

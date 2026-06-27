@@ -1,6 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any --
+ * The oxc parser returns its AST as a JSON string (see `JSON.parse(result.program)`),
+ * so visited nodes are untyped. Replacing the JSON round-trip with oxc's typed
+ * AST and typing the walker is tracked as M4 in TODO.md.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 import oxc from "oxc-parser";
+import { toError } from "../utils/errors.js";
 
 export interface Reference {
   key: string;
@@ -260,10 +266,10 @@ async function scanFile(filePath: string, baseCwd: string, report: ScanReport) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     report.warnings.push({
       file: relPath,
-      message: error.message || String(error),
+      message: toError(error).message,
     });
   }
 }

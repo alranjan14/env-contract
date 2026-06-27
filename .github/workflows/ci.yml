@@ -1,10 +1,14 @@
 name: CI
 
+# NOTE: the repository default branch is currently `master`. Both `main` and
+# `master` are listed so CI runs today and keeps working if the default branch
+# is renamed to `main`. If you rename, you can drop `master` here.
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
+  workflow_dispatch:
 
 jobs:
   test:

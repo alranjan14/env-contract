@@ -61,6 +61,24 @@ export function diff(
   return report;
 }
 
+/**
+ * The single source of truth for example-file drift: which schema keys are
+ * missing from a set of present keys, and which present keys are not in the
+ * schema. Both `sync` and `check` call this so the rule can never diverge.
+ */
+export function computeKeyDrift(
+  schemaKeys: string[],
+  presentKeys: string[],
+  ignore: ReadonlySet<string>,
+): { missing: string[]; extra: string[] } {
+  const present = new Set(presentKeys);
+  const schema = new Set(schemaKeys);
+  return {
+    missing: schemaKeys.filter((k) => !present.has(k) && !ignore.has(k)),
+    extra: [...present].filter((k) => !schema.has(k) && !ignore.has(k)),
+  };
+}
+
 export function parseEnvKeys(content: string): string[] {
   return content
     .split("\n")

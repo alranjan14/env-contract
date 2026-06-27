@@ -51,4 +51,17 @@ describe("Config Resolution", () => {
     const config = await resolveConfig(tempDir);
     expect(config).toEqual({ ignoreKeys: ["FOO"] });
   });
+
+  it("should fail loudly when a present config file throws, not silently use defaults", async () => {
+    await fs.writeFile(
+      path.join(tempDir, "env-contract.config.ts"),
+      `throw new Error("boom from config");\nexport default {};`
+    );
+    await expect(resolveConfig(tempDir)).rejects.toThrow(/Failed to load config/);
+  });
+
+  it("should fail loudly on a malformed package.json rather than returning {}", async () => {
+    await fs.writeFile(path.join(tempDir, "package.json"), "{ this is not valid json");
+    await expect(resolveConfig(tempDir)).rejects.toThrow(/Failed to read package\.json/);
+  });
 });

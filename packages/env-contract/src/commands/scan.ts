@@ -8,13 +8,14 @@ import { resolveConfig } from "../config.js";
 import { findSchemaFile } from "../utils/file.js";
 import { formatJsonScan } from "../reporters/json.js";
 import { reportScan } from "../reporters/pretty.js";
+import { toError } from "../utils/errors.js";
 import type { Config } from "../config.js";
 import type { ScanReportData } from "../reporters/types.js";
 
 export async function runScan(
   options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string; include?: string[]; exclude?: string[]; silent?: boolean; _internal?: boolean },
   config: Config = {}
-): Promise<{ code: number; data?: any }> {
+): Promise<{ code: number; data?: ScanReportData | ScanReportData[] }> {
   const cwd = options.cwd || process.cwd();
   const isWorkspace = options.workspace;
 
@@ -65,7 +66,7 @@ export async function runScan(
           if (result.orphanedRefs.length > 0 || (options.strict && result.unusedSchemaKeys.length > 0)) {
             hasErrors = true;
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
           allReports.push({
             package: pkg.dir,
             rootDir,
@@ -73,7 +74,7 @@ export async function runScan(
             unusedSchemaKeys: [],
             dynamicRefs: [],
             warnings: [],
-            error: e.message
+            error: toError(e).message
           });
           hasErrors = true;
         }
@@ -128,20 +129,21 @@ export async function runScan(
 
     const hasErrors = result.orphanedRefs.length > 0 || (options.strict && result.unusedSchemaKeys.length > 0);
     return { code: hasErrors ? 1 : 0, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = toError(error).message;
     const errorData: ScanReportData = {
       rootDir: cwd,
       orphanedRefs: [],
       unusedSchemaKeys: [],
       dynamicRefs: [],
       warnings: [],
-      error: error.message
+      error: message
     };
 
     if (options.json && !options._internal) {
       console.log(formatJsonScan(errorData));
     } else if (!options.json && !options.silent) {
-      console.error(pc.red(`✖ Scan failed: ${error.message}`));
+      console.error(pc.red(`✖ Scan failed: ${message}`));
     }
     return { code: 2, data: errorData };
   }

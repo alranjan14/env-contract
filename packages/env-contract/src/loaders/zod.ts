@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any --
+ * This loader navigates Zod's internal `_def`/`def` shapes, which differ across
+ * Zod v3/v4 and are not publicly typed. Typing this against real introspection
+ * types is tracked as M4 in TODO.md. The public boundary (zodLoader) is `unknown`.
+ */
 import type { Schema, SchemaEntry } from "./types.js";
 
 type ZodLikeSchema = {

@@ -4,6 +4,12 @@ import pc from "picocolors";
 import readline from "node:readline";
 import type { Config } from "../config.js";
 
+interface PackageJsonShape {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  "simple-git-hooks"?: Record<string, string>;
+}
+
 async function ask(question: string): Promise<boolean> {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -53,11 +59,11 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
 
   let hookManager: "husky" | "simple-git-hooks" | "lefthook" | null = null;
   const packageJsonPath = path.join(rootDir, "package.json");
-  let packageJson: any = null;
+  let packageJson: PackageJsonShape | null = null;
 
   try {
     const pkgContent = await fs.readFile(packageJsonPath, "utf-8");
-    packageJson = JSON.parse(pkgContent);
+    packageJson = JSON.parse(pkgContent) as PackageJsonShape;
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
     
     if (deps["husky"]) hookManager = "husky";
