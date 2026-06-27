@@ -29,23 +29,23 @@ export function generateExample(schema: Schema, options?: { managedBlock?: boole
 
 function formatEntries(entries: SchemaEntry[]): string[] {
   const lines: string[] = [];
-  
+
   for (const entry of entries) {
     if (lines.length > 0) lines.push(""); // Blank line between entries
-    
+
     // Base description or fallback to type
     let comment = entry.description ? entry.description : entry.type;
-    
+
     // Add default if present
     if (entry.default !== undefined) {
       comment += ` (default: ${JSON.stringify(entry.default)})`;
     }
-    
+
     // Add optional if present
     if (entry.optional) {
       comment += " — Optional";
     }
-    
+
     lines.push(`# ${comment}`);
     lines.push(`${entry.key}=`);
   }

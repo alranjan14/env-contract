@@ -52,7 +52,7 @@ describe("Package contents inspection", () => {
         f.includes(".test.") ||
         f.endsWith("test_cli_fail.ts") ||
         f.endsWith("test_template.ts") ||
-        f.endsWith("test-output.txt")
+        f.endsWith("test-output.txt"),
     );
 
     expect(invalidFiles).toEqual([]);
@@ -60,7 +60,7 @@ describe("Package contents inspection", () => {
     // 4. Ensure all files belong to allowed top-level directories/files
     const allowedRoots = ["dist/", "LICENSE", "CHANGELOG.md", "README.md", "package.json"];
     const unexpectedFiles = files.filter(
-      (f) => !allowedRoots.some((allowed) => f === allowed || f.startsWith(allowed))
+      (f) => !allowedRoots.some((allowed) => f === allowed || f.startsWith(allowed)),
     );
 
     expect(unexpectedFiles).toEqual([]);

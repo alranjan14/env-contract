@@ -9,7 +9,13 @@ import path from "node:path";
 import { errorCode } from "../utils/errors.js";
 import type { Reference, DynamicReference } from "./scan-source.js";
 
-export async function check(options: { cwd?: string | undefined; strict?: boolean | undefined; schema?: string | undefined } = {}): Promise<{
+export async function check(
+  options: {
+    cwd?: string | undefined;
+    strict?: boolean | undefined;
+    schema?: string | undefined;
+  } = {},
+): Promise<{
   ok: boolean;
   exampleDrift: {
     missingInExample: string[];
@@ -23,15 +29,19 @@ export async function check(options: { cwd?: string | undefined; strict?: boolea
   const cwd = options.cwd || process.cwd();
   const config = await resolveConfig(cwd);
 
-  const schemaPath = options.schema 
-    ? path.resolve(cwd, options.schema) 
-    : (config.schema ? path.resolve(cwd, config.schema) : await findSchemaFile(cwd));
+  const schemaPath = options.schema
+    ? path.resolve(cwd, options.schema)
+    : config.schema
+      ? path.resolve(cwd, config.schema)
+      : await findSchemaFile(cwd);
 
   const schema = await loadSchema(schemaPath);
-  
+
   // 1. Sync check
-  const exampleFile = config.exampleFile ? path.resolve(cwd, config.exampleFile) : path.resolve(cwd, ".env.example");
-  
+  const exampleFile = config.exampleFile
+    ? path.resolve(cwd, config.exampleFile)
+    : path.resolve(cwd, ".env.example");
+
   let existingContent = "";
   try {
     existingContent = await fs.readFile(exampleFile, "utf-8");
@@ -61,19 +71,21 @@ export async function check(options: { cwd?: string | undefined; strict?: boolea
   if (exclude) scanOptions.exclude = exclude;
 
   const report = await scanSource(rootDir, scanOptions);
-  
+
   const diffResult = diff(schema, [], report.references, {
     strict: options.strict !== undefined ? options.strict : false,
     ignoreKeys: config.ignoreKeys || [],
   });
 
-  const hasScanDrift = diffResult.orphanedRefs.length > 0 || (options.strict && diffResult.unusedSchemaKeys.length > 0);
+  const hasScanDrift =
+    diffResult.orphanedRefs.length > 0 ||
+    (options.strict && diffResult.unusedSchemaKeys.length > 0);
 
   return {
     ok: !hasSyncDrift && !hasScanDrift,
     exampleDrift: {
       missingInExample,
-      extraInExample
+      extraInExample,
     },
     orphanedRefs: diffResult.orphanedRefs,
     unusedSchemaKeys: diffResult.unusedSchemaKeys,

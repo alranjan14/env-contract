@@ -1,54 +1,67 @@
 import pc from "picocolors";
 import type { SyncReport, ScanReportData, CheckReport } from "./types.js";
+import { consoleLogger, type Logger } from "../utils/logger.js";
 
-export function reportSync(r: SyncReport | SyncReport[], options: { check?: boolean | undefined }): void {
+export function reportSync(
+  r: SyncReport | SyncReport[],
+  options: { check?: boolean | undefined },
+  logger: Logger = consoleLogger,
+): void {
   const reports = Array.isArray(r) ? r : [r];
 
   for (const rep of reports) {
     if (rep.package && reports.length > 1) {
-      console.log(pc.magenta(`\n📦 ${rep.package}`));
+      logger.info(pc.magenta(`\n📦 ${rep.package}`));
     }
 
     const exampleFile = rep.exampleFile;
 
     if (rep.error) {
-      console.error(pc.red(`✖ Sync failed${rep.package ? ` for ${rep.package}` : ""}: ${rep.error}`));
+      logger.error(
+        pc.red(`✖ Sync failed${rep.package ? ` for ${rep.package}` : ""}: ${rep.error}`),
+      );
       continue;
     }
 
     if (!rep.syncDrift) {
-      console.log(pc.green(`✔ ${exampleFile} is already up to date with the schema.`));
+      logger.info(pc.green(`✔ ${exampleFile} is already up to date with the schema.`));
       continue;
     }
 
     if (options.check) {
-      console.error(pc.red(`\n✖ Drift detected in ${exampleFile}.`));
+      logger.error(pc.red(`\n✖ Drift detected in ${exampleFile}.`));
       if (rep.missingInExample.length > 0) {
-        console.error(pc.yellow(`  Missing keys in managed block:`));
+        logger.error(pc.yellow(`  Missing keys in managed block:`));
         for (const key of rep.missingInExample) {
-          console.error(`    - ${pc.red(key)}`);
+          logger.error(`    - ${pc.red(key)}`);
         }
       }
       if (rep.extraInExample.length > 0) {
-        console.error(pc.yellow(`  Extra keys in managed block (not in schema):`));
+        logger.error(pc.yellow(`  Extra keys in managed block (not in schema):`));
         for (const key of rep.extraInExample) {
-          console.error(`    - ${pc.red(key)}`);
+          logger.error(`    - ${pc.red(key)}`);
         }
       }
-      console.error(pc.yellow(`👉 Suggestion: Run \`env-contract sync\` to update.`));
+      logger.error(pc.yellow(`👉 Suggestion: Run \`env-contract sync\` to update.`));
     } else {
-      console.log(pc.green(`✔ Successfully updated ${exampleFile}.`));
+      logger.info(pc.green(`✔ Successfully updated ${exampleFile}.`));
     }
   }
 }
 
-export function reportScan(r: ScanReportData | ScanReportData[], options: { strict?: boolean | undefined }): void {
+export function reportScan(
+  r: ScanReportData | ScanReportData[],
+  options: { strict?: boolean | undefined },
+  logger: Logger = consoleLogger,
+): void {
   const reports = Array.isArray(r) ? r : [r];
   let printedErrors = false;
 
   for (const rep of reports) {
     if (rep.error) {
-      console.error(pc.red(`✖ Scan failed${rep.package ? ` for ${rep.package}` : ""}: ${rep.error}`));
+      logger.error(
+        pc.red(`✖ Scan failed${rep.package ? ` for ${rep.package}` : ""}: ${rep.error}`),
+      );
       printedErrors = true;
       continue;
     }
@@ -58,34 +71,45 @@ export function reportScan(r: ScanReportData | ScanReportData[], options: { stri
     const unusedSchemaKeys = rep.unusedSchemaKeys;
     const warnings = rep.warnings;
 
-    if (orphanedRefs.length > 0 || dynamicRefs.length > 0 || (options.strict && unusedSchemaKeys.length > 0) || warnings.length > 0) {
+    if (
+      orphanedRefs.length > 0 ||
+      dynamicRefs.length > 0 ||
+      (options.strict && unusedSchemaKeys.length > 0) ||
+      warnings.length > 0
+    ) {
       if (rep.package) {
-        console.log(pc.magenta(`\n📦 ${rep.package}`));
+        logger.info(pc.magenta(`\n📦 ${rep.package}`));
       }
       printedErrors = true;
-      
+
       if (warnings.length > 0) {
-        console.log(pc.yellow(`Found ${warnings.length} file parse warnings:`));
+        logger.info(pc.yellow(`Found ${warnings.length} file parse warnings:`));
         for (const w of warnings) {
-          console.log(`  ${pc.gray(w.file)}: ${pc.red(w.message)}`);
+          logger.info(`  ${pc.gray(w.file)}: ${pc.red(w.message)}`);
         }
       }
       if (orphanedRefs.length > 0) {
-        console.log(pc.yellow(`Found ${orphanedRefs.length} orphaned references (not in schema):`));
+        logger.info(pc.yellow(`Found ${orphanedRefs.length} orphaned references (not in schema):`));
         for (const ref of orphanedRefs) {
-          console.log(`  ${pc.red(ref.key)} ${pc.gray(`at ${ref.file}:${ref.line}:${ref.column}`)}`);
+          logger.info(
+            `  ${pc.red(ref.key)} ${pc.gray(`at ${ref.file}:${ref.line}:${ref.column}`)}`,
+          );
         }
       }
       if (dynamicRefs.length > 0) {
-        console.log(pc.yellow(`Found ${dynamicRefs.length} dynamic accesses (cannot be statically verified):`));
+        logger.info(
+          pc.yellow(
+            `Found ${dynamicRefs.length} dynamic accesses (cannot be statically verified):`,
+          ),
+        );
         for (const d of dynamicRefs) {
-          console.log(`  ${pc.gray(`${d.file}:${d.line}`)} ${pc.red(d.snippet)}`);
+          logger.info(`  ${pc.gray(`${d.file}:${d.line}`)} ${pc.red(d.snippet)}`);
         }
       }
       if (options.strict && unusedSchemaKeys.length > 0) {
-        console.log(pc.yellow(`Found ${unusedSchemaKeys.length} unused schema entries:`));
+        logger.info(pc.yellow(`Found ${unusedSchemaKeys.length} unused schema entries:`));
         for (const key of unusedSchemaKeys) {
-          console.log(`  ${pc.red(key)}`);
+          logger.info(`  ${pc.red(key)}`);
         }
       }
     }
@@ -93,16 +117,20 @@ export function reportScan(r: ScanReportData | ScanReportData[], options: { stri
 
   if (!printedErrors) {
     if (Array.isArray(r)) {
-      console.log(pc.green("✔ No environment contract violations found in any workspace package."));
+      logger.info(pc.green("✔ No environment contract violations found in any workspace package."));
     } else {
-      console.log(pc.green("✔ No environment contract violations found in code."));
+      logger.info(pc.green("✔ No environment contract violations found in code."));
     }
   }
 }
 
-export function reportCheck(report: CheckReport, _options: { strict?: boolean | undefined }): void {
+export function reportCheck(
+  report: CheckReport,
+  _options: { strict?: boolean | undefined },
+  logger: Logger = consoleLogger,
+): void {
   if (report.ok) {
-    console.log(pc.green("\n✔ Environment contract is healthy."));
+    logger.info(pc.green("\n✔ Environment contract is healthy."));
     return;
   }
 
@@ -111,7 +139,7 @@ export function reportCheck(report: CheckReport, _options: { strict?: boolean | 
 
   for (const pkg of report.packages) {
     if (pkg.error) {
-      console.error(pc.red(`✖ Check failed for ${pkg.package}: ${pkg.error}`));
+      logger.error(pc.red(`✖ Check failed for ${pkg.package}: ${pkg.error}`));
       continue;
     }
     if (pkg.syncDrift) {
@@ -121,20 +149,26 @@ export function reportCheck(report: CheckReport, _options: { strict?: boolean | 
   }
 
   if (hasSyncDrift) {
-    console.error(pc.red("\n✗ .env.example is out of date"));
-    console.error(pc.red("  Run `env-contract sync` to update."));
+    logger.error(pc.red("\n✗ .env.example is out of date"));
+    logger.error(pc.red("  Run `env-contract sync` to update."));
   }
 
   if (totalOrphaned > 0) {
-    console.error(pc.red(`\n✗ Found ${totalOrphaned} reference(s) to variables not in the schema:`));
+    logger.error(pc.red(`\n✗ Found ${totalOrphaned} reference(s) to variables not in the schema:`));
     for (const pkg of report.packages) {
       for (const ref of pkg.orphanedRefs) {
         const prefix = ref.kind === "import.meta.env" ? "import.meta.env" : "process.env";
-        console.error(`  ${pc.gray(`${ref.file}:${ref.line}:${ref.column}`)}  ${pc.red(`${prefix}.${ref.key}`)}`);
+        logger.error(
+          `  ${pc.gray(`${ref.file}:${ref.line}:${ref.column}`)}  ${pc.red(`${prefix}.${ref.key}`)}`,
+        );
       }
     }
   }
 
-  console.error(pc.red("\n✖ Environment contract check failed."));
-  console.error(pc.yellow("👉 Suggestion: Fix this by running 'npx env-contract sync' locally and committing the result."));
+  logger.error(pc.red("\n✖ Environment contract check failed."));
+  logger.error(
+    pc.yellow(
+      "👉 Suggestion: Fix this by running 'npx env-contract sync' locally and committing the result.",
+    ),
+  );
 }

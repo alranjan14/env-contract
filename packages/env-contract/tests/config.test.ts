@@ -22,10 +22,7 @@ describe("Config Resolution", () => {
 
   it("should load from explicit config path", async () => {
     const customConfigPath = path.join(tempDir, "custom.ts");
-    await fs.writeFile(
-      customConfigPath,
-      `export default { schema: "custom.ts" };`
-    );
+    await fs.writeFile(customConfigPath, `export default { schema: "custom.ts" };`);
     const config = await resolveConfig(tempDir, customConfigPath);
     expect(config).toEqual({ schema: "custom.ts" });
   });
@@ -33,7 +30,7 @@ describe("Config Resolution", () => {
   it("should fallback to env-contract.config.ts", async () => {
     await fs.writeFile(
       path.join(tempDir, "env-contract.config.ts"),
-      `export default { rootDir: "src/app" };`
+      `export default { rootDir: "src/app" };`,
     );
     const config = await resolveConfig(tempDir);
     expect(config).toEqual({ rootDir: "src/app" });
@@ -44,9 +41,9 @@ describe("Config Resolution", () => {
       path.join(tempDir, "package.json"),
       JSON.stringify({
         "env-contract": {
-          ignoreKeys: ["FOO"]
-        }
-      })
+          ignoreKeys: ["FOO"],
+        },
+      }),
     );
     const config = await resolveConfig(tempDir);
     expect(config).toEqual({ ignoreKeys: ["FOO"] });
@@ -55,7 +52,7 @@ describe("Config Resolution", () => {
   it("should fail loudly when a present config file throws, not silently use defaults", async () => {
     await fs.writeFile(
       path.join(tempDir, "env-contract.config.ts"),
-      `throw new Error("boom from config");\nexport default {};`
+      `throw new Error("boom from config");\nexport default {};`,
     );
     await expect(resolveConfig(tempDir)).rejects.toThrow(/Failed to load config/);
   });
@@ -63,5 +60,13 @@ describe("Config Resolution", () => {
   it("should fail loudly on a malformed package.json rather than returning {}", async () => {
     await fs.writeFile(path.join(tempDir, "package.json"), "{ this is not valid json");
     await expect(resolveConfig(tempDir)).rejects.toThrow(/Failed to read package\.json/);
+  });
+
+  it("should reject a config with an invalid shape (ignoreKeys not an array)", async () => {
+    await fs.writeFile(
+      path.join(tempDir, "env-contract.config.ts"),
+      `export default { ignoreKeys: "FOO" };`,
+    );
+    await expect(resolveConfig(tempDir)).rejects.toThrow(/"ignoreKeys" must be an array/);
   });
 });

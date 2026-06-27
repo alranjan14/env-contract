@@ -1,12 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { injectIntoContent, extractManagedContent, START_MARKER, END_MARKER } from "../src/utils/managed-block.js";
+import {
+  injectIntoContent,
+  extractManagedContent,
+  START_MARKER,
+  END_MARKER,
+} from "../src/utils/managed-block.js";
 
 describe("managed-block utility", () => {
   it("should append block to the end if markers don't exist", () => {
     const existing = "SOME_VAR=value";
     const managed = "MANAGED_VAR=";
     const result = injectIntoContent(existing, managed);
-    
+
     expect(result).toContain(existing);
     expect(result).toContain(START_MARKER);
     expect(result).toContain(managed);
@@ -24,7 +29,7 @@ AFTER=1
 `;
     const managed = "NEW_VAR=";
     const result = injectIntoContent(existing, managed);
-    
+
     expect(result).toContain("BEFORE=1");
     expect(result).toContain("AFTER=1");
     expect(result).toContain("NEW_VAR=");

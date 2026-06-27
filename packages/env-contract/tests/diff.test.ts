@@ -13,7 +13,7 @@ describe("diff logic", () => {
   it("should detect missing keys in example", () => {
     const exampleKeys = ["KEY_A"];
     const report = diff(schema, exampleKeys, []);
-    
+
     expect(report.exampleDrift.missingInExample).toContain("KEY_B");
     expect(report.exampleDrift.extraInExample).toHaveLength(0);
   });
@@ -21,7 +21,7 @@ describe("diff logic", () => {
   it("should detect extra keys in example", () => {
     const exampleKeys = ["KEY_A", "KEY_B", "KEY_C"];
     const report = diff(schema, exampleKeys, []);
-    
+
     expect(report.exampleDrift.extraInExample).toContain("KEY_C");
     expect(report.exampleDrift.missingInExample).toHaveLength(0);
   });
@@ -32,7 +32,7 @@ describe("diff logic", () => {
       { key: "KEY_UNKNOWN", file: "b.ts", line: 2, column: 1, kind: "process.env" as const },
     ];
     const report = diff(schema, ["KEY_A", "KEY_B"], refs);
-    
+
     expect(report.orphanedRefs).toHaveLength(1);
     expect(report.orphanedRefs[0]?.key).toBe("KEY_UNKNOWN");
   });
@@ -40,7 +40,7 @@ describe("diff logic", () => {
   it("should detect unused schema keys in strict mode", () => {
     const refs = [{ key: "KEY_A", file: "a.ts", line: 1, column: 1, kind: "process.env" as const }];
     const report = diff(schema, ["KEY_A", "KEY_B"], refs, { strict: true });
-    
+
     expect(report.unusedSchemaKeys).toContain("KEY_B");
   });
 
@@ -67,8 +67,8 @@ describe("diff logic", () => {
 
     // Orphaned refs:
     // NODE_ENV and CI are not in schema, but they are ignored
-    expect(report.orphanedRefs.map(r => r.key)).not.toContain("NODE_ENV");
-    expect(report.orphanedRefs.map(r => r.key)).not.toContain("CI");
+    expect(report.orphanedRefs.map((r) => r.key)).not.toContain("NODE_ENV");
+    expect(report.orphanedRefs.map((r) => r.key)).not.toContain("CI");
 
     // Unused schema keys:
     // KEY_B is in schema but not referenced, but it's ignored

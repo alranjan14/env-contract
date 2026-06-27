@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import pc from "picocolors";
 import readline from "node:readline";
+import { ExitCode } from "../utils/exit-code.js";
 import type { Config } from "../config.js";
 
 interface PackageJsonShape {
@@ -24,14 +25,16 @@ async function ask(question: string): Promise<boolean> {
   });
 }
 
-export async function detectPackageManager(cwd: string): Promise<string> {
+export type PackageManagerCommand = "pnpm exec" | "bunx" | "yarn exec" | "npm exec";
+
+export async function detectPackageManager(cwd: string): Promise<PackageManagerCommand> {
   const ua = process.env.npm_config_user_agent || "";
   if (ua.startsWith("pnpm")) return "pnpm exec";
   if (ua.startsWith("bun")) return "bunx";
   if (ua.startsWith("yarn")) return "yarn exec";
   if (ua.startsWith("npm")) return "npm exec";
 
-  const candidates = [
+  const candidates: { file: string; cmd: PackageManagerCommand }[] = [
     { file: "pnpm-lock.yaml", cmd: "pnpm exec" },
     { file: "bun.lockb", cmd: "bunx" },
     { file: "yarn.lock", cmd: "yarn exec" },
@@ -50,11 +53,14 @@ export async function detectPackageManager(cwd: string): Promise<string> {
   return "npm exec";
 }
 
-export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: string }, config: Config = {}): Promise<{ code: number }> {
+export async function runInstall(
+  options: { hook?: string; yes?: boolean; cwd?: string },
+  config: Config = {},
+): Promise<{ code: ExitCode }> {
   const hookName = options.hook || "pre-commit";
   const cwd = options.cwd || process.cwd();
   const rootDir = config.rootDir ? path.resolve(cwd, config.rootDir) : cwd;
-  
+
   console.log(pc.bold("env-contract setup helper\n"));
 
   let hookManager: "husky" | "simple-git-hooks" | "lefthook" | null = null;
@@ -65,7 +71,7 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
     const pkgContent = await fs.readFile(packageJsonPath, "utf-8");
     packageJson = JSON.parse(pkgContent) as PackageJsonShape;
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    
+
     if (deps["husky"]) hookManager = "husky";
     else if (deps["simple-git-hooks"]) hookManager = "simple-git-hooks";
     else if (deps["lefthook"]) hookManager = "lefthook";
@@ -96,7 +102,7 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
   if (hookManager === "husky") {
     const hookPath = path.join(rootDir, ".husky", hookName);
     console.log(`Detected ${pc.cyan("husky")}.`);
-    
+
     let existingHook = "";
     try {
       existingHook = await fs.readFile(hookPath, "utf-8");
@@ -107,11 +113,11 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
     if (existingHook.includes("env-contract check")) {
       console.log(pc.green(`✔ ${hookPath} already contains env-contract check.`));
     } else {
-      if (options.yes || await ask(`Add env-contract to .husky/${hookName}?`)) {
-        const newHook = existingHook 
+      if (options.yes || (await ask(`Add env-contract to .husky/${hookName}?`))) {
+        const newHook = existingHook
           ? (existingHook.endsWith("\n") ? existingHook : existingHook + "\n") + command + "\n"
           : `#!/usr/bin/env sh\n\n${command}\n`;
-        
+
         // Ensure .husky dir exists
         await fs.mkdir(path.join(rootDir, ".husky"), { recursive: true });
         await fs.writeFile(hookPath, newHook, "utf-8");
@@ -122,20 +128,24 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
     }
   } else if (hookManager === "simple-git-hooks") {
     console.log(`Detected ${pc.cyan("simple-git-hooks")}.`);
-    
+
     if (packageJson) {
       const hooks = packageJson["simple-git-hooks"] || {};
       const existing = hooks[hookName] || "";
-      
+
       if (existing.includes("env-contract check")) {
-        console.log(pc.green(`✔ package.json already contains env-contract in simple-git-hooks.${hookName}.`));
+        console.log(
+          pc.green(`✔ package.json already contains env-contract in simple-git-hooks.${hookName}.`),
+        );
       } else {
-        if (options.yes || await ask(`Add env-contract to simple-git-hooks in package.json?`)) {
+        if (options.yes || (await ask(`Add env-contract to simple-git-hooks in package.json?`))) {
           const newCommand = existing ? `${existing} && ${command}` : command;
           packageJson["simple-git-hooks"] = { ...hooks, [hookName]: newCommand };
           await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n", "utf-8");
           console.log(pc.green(`✔ Updated package.json.`));
-          console.log(pc.yellow(`👉 Run \`npx simple-git-hooks\` to update your local git config.`));
+          console.log(
+            pc.yellow(`👉 Run \`npx simple-git-hooks\` to update your local git config.`),
+          );
         }
       }
     }
@@ -151,13 +161,17 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
       // lefthook.yml doesn't exist yet, we will create it if they agree
     }
 
-    if (lefthookContent.includes("env-contract") || lefthookContent.includes("env-contract check")) {
+    if (
+      lefthookContent.includes("env-contract") ||
+      lefthookContent.includes("env-contract check")
+    ) {
       console.log(pc.green(`✔ ${fileToEdit} already contains env-contract check.`));
     } else {
-      if (options.yes || await ask(`Add env-contract to ${fileToEdit}?`)) {
+      if (options.yes || (await ask(`Add env-contract to ${fileToEdit}?`))) {
         const commandBlock = `\n${hookName}:\n  commands:\n    env-contract:\n      run: ${command}\n`;
-        const updatedContent = lefthookContent 
-          ? (lefthookContent.endsWith("\n") ? lefthookContent : lefthookContent + "\n") + commandBlock
+        const updatedContent = lefthookContent
+          ? (lefthookContent.endsWith("\n") ? lefthookContent : lefthookContent + "\n") +
+            commandBlock
           : `# Lefthook configuration\n${commandBlock}`;
 
         await fs.writeFile(lefthookPath, updatedContent, "utf-8");
@@ -167,14 +181,18 @@ export async function runInstall(options: { hook?: string; yes?: boolean; cwd?: 
     }
   } else {
     console.log(`No supported git hook manager found (husky, simple-git-hooks, lefthook).`);
-    console.log(`To run env-contract before commits, please configure one of them and add:\n\n  ${pc.cyan(command)}\n`);
+    console.log(
+      `To run env-contract before commits, please configure one of them and add:\n\n  ${pc.cyan(command)}\n`,
+    );
   }
 
-  const ciCommand = pmCommand.startsWith("npm") ? "npm run env-contract check" : `${pmCommand.split(" ")[0]} env-contract check`;
+  const ciCommand = pmCommand.startsWith("npm")
+    ? "npm run env-contract check"
+    : `${pmCommand.split(" ")[0]} env-contract check`;
   console.log("\n" + pc.bold("GitHub Actions CI Snippet"));
   console.log("Add this step to your testing workflow:\n");
   console.log(pc.cyan(`      - name: Check Environment Contract\n        run: ${ciCommand}`));
   console.log();
 
-  return { code: 0 };
+  return { code: ExitCode.Ok };
 }

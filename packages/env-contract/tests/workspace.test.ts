@@ -126,7 +126,7 @@ ignored_field:
       // Create pnpm-workspace.yaml
       await fs.writeFile(
         path.join(monorepoRoot, "pnpm-workspace.yaml"),
-        "packages:\n  - 'apps/*'\n  - 'packages/*'"
+        "packages:\n  - 'apps/*'\n  - 'packages/*'",
       );
 
       // apps/web (enabled)
@@ -166,7 +166,7 @@ ignored_field:
       // Create package.json with workspaces
       await fs.writeFile(
         path.join(monorepoRoot, "package.json"),
-        JSON.stringify({ workspaces: ["packages/*"] })
+        JSON.stringify({ workspaces: ["packages/*"] }),
       );
 
       // packages/core (enabled)

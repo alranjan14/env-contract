@@ -1,5 +1,22 @@
 # Security Policy
 
+## Security model
+
+`env-contract` discovers your env **schema** and **config** files by importing
+them, which **executes that code** in the current Node process (via
+[jiti](https://github.com/unjs/jiti)). This is the same trust model as tools like
+ESLint, Vite, or Jest that load `*.config.ts` files.
+
+Practical implications:
+
+- Only run `env-contract` against repositories you trust. In CI, treat it like
+  any other step that runs repository code — avoid running it against untrusted
+  pull requests in a privileged context.
+- `env-contract` reads only env **variable names** (from your schema and the
+  managed block of `.env.example`). It never reads, prints, or stores secret
+  **values**.
+- No telemetry, no network access, and no postinstall scripts.
+
 ## Reporting a Vulnerability
 
 We take the security of this project seriously. If you believe you have found a security vulnerability, please report it to us responsibly.

@@ -14,7 +14,7 @@ export function formatJsonCheck(report: CheckReport): string {
         ...(pkg.error ? { error: pkg.error } : {}),
       })),
       null,
-      2
+      2,
     );
   } else {
     const pkg = report.packages[0];
@@ -30,7 +30,7 @@ export function formatJsonCheck(report: CheckReport): string {
         ...(pkg.error ? { error: pkg.error } : {}),
       },
       null,
-      2
+      2,
     );
   }
 }
@@ -46,7 +46,7 @@ export function formatJsonSync(reports: SyncReport | SyncReport[]): string {
         ...(r.error ? { error: r.error } : {}),
       })),
       null,
-      2
+      2,
     );
   } else {
     return JSON.stringify(
@@ -57,7 +57,7 @@ export function formatJsonSync(reports: SyncReport | SyncReport[]): string {
         ...(reports.error ? { error: reports.error } : {}),
       },
       null,
-      2
+      2,
     );
   }
 }
@@ -74,7 +74,7 @@ export function formatJsonScan(reports: ScanReportData | ScanReportData[]): stri
         ...(r.error ? { error: r.error } : {}),
       })),
       null,
-      2
+      2,
     );
   } else {
     return JSON.stringify(
@@ -86,7 +86,7 @@ export function formatJsonScan(reports: ScanReportData | ScanReportData[]): stri
         ...(reports.error ? { error: reports.error } : {}),
       },
       null,
-      2
+      2,
     );
   }
 }

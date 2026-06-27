@@ -17,7 +17,7 @@ describe("Realistic Fixtures Integrations (P2)", () => {
     it("should load the plain Zod schema correctly", async () => {
       const schemaPath = path.join(cwd, "src/env.ts");
       const result = await loadSchema(schemaPath);
-      
+
       expect(result.entries).toHaveLength(3);
       expect(result.entries).toContainEqual({
         key: "PORT",

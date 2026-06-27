@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any --
- * Navigates ArkType's internal `inner.structure.propsByKey` shapes, which are
- * not publicly typed. Typed introspection is tracked as M4 in TODO.md.
- */
+// NOTE: navigates ArkType's internal `inner.structure.propsByKey` shapes (not
+// publicly typed). `any` here is quarantined in eslint.config.js; see M4 in TODO.md.
 import type { Schema, SchemaEntry } from "./types.js";
 
 export function introspectArkTypeSchema(obj: any, scope: "server" | "client" = "server"): Schema {

@@ -14,7 +14,7 @@ export function diff(
   schema: Schema,
   exampleKeys: string[],
   scannerRefs: Reference[],
-  options: { strict?: boolean; ignoreKeys?: string[] } = {}
+  options: { strict?: boolean; ignoreKeys?: string[] } = {},
 ): DiffReport {
   const schemaKeys = new Set(schema.entries.map((e) => e.key));
   const exampleKeySet = new Set(exampleKeys);
@@ -84,5 +84,9 @@ export function parseEnvKeys(content: string): string[] {
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith("#"))
-    .map((line) => line.split("=")[0]!.trim());
+    .map((line) => {
+      // Support `export KEY=value` in addition to plain `KEY=value`.
+      const withoutExport = line.startsWith("export ") ? line.slice("export ".length) : line;
+      return withoutExport.split("=")[0]!.trim();
+    });
 }

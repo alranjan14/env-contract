@@ -80,7 +80,7 @@ export async function resolveWorkspaceGlobs(rootDir: string, globs: string[]): P
     } else if (cleanGlob.endsWith("/**")) {
       const parentRel = cleanGlob.slice(0, -3);
       const parentAbs = path.resolve(rootDir, parentRel);
-      
+
       const walk = async (dir: string) => {
         let entries;
         try {
@@ -90,7 +90,12 @@ export async function resolveWorkspaceGlobs(rootDir: string, globs: string[]): P
         }
 
         for (const entry of entries) {
-          if (entry.isDirectory() && entry.name !== "node_modules" && entry.name !== "dist" && entry.name !== ".git") {
+          if (
+            entry.isDirectory() &&
+            entry.name !== "node_modules" &&
+            entry.name !== "dist" &&
+            entry.name !== ".git"
+          ) {
             const childAbs = path.join(dir, entry.name);
             try {
               await fs.access(path.join(childAbs, "package.json"));
@@ -118,7 +123,9 @@ export async function resolveWorkspaceGlobs(rootDir: string, globs: string[]): P
 }
 
 // Classify if a package directory is env-contract enabled
-export async function checkIfPackageIsContractEnabled(dir: string): Promise<WorkspacePackage | null> {
+export async function checkIfPackageIsContractEnabled(
+  dir: string,
+): Promise<WorkspacePackage | null> {
   const exts = [".ts", ".js", ".mjs", ".cjs"];
   let hasConfig = false;
 
@@ -135,7 +142,7 @@ export async function checkIfPackageIsContractEnabled(dir: string): Promise<Work
   if (!hasConfig) {
     try {
       const pkgContent = await fs.readFile(path.join(dir, "package.json"), "utf-8");
-      const pkg = JSON.parse(pkgContent);
+      const pkg = JSON.parse(pkgContent) as { "env-contract"?: unknown };
       if (pkg["env-contract"]) {
         hasConfig = true;
       }
@@ -185,7 +192,9 @@ export async function findWorkspacePackages(rootDir: string): Promise<WorkspaceP
   if (packageDirs.length === 0) {
     try {
       const pkgContent = await fs.readFile(path.join(rootDir, "package.json"), "utf-8");
-      const pkg = JSON.parse(pkgContent);
+      const pkg = JSON.parse(pkgContent) as {
+        workspaces?: string[] | { packages?: string[] };
+      };
       if (pkg.workspaces) {
         let globs: string[] = [];
         if (Array.isArray(pkg.workspaces)) {

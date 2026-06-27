@@ -15,7 +15,7 @@ export function toError(value: unknown): Error {
  */
 export function errorCode(value: unknown): string | undefined {
   if (value !== null && typeof value === "object" && "code" in value) {
-    const code = (value as { code: unknown }).code;
+    const code: unknown = value.code;
     return typeof code === "string" ? code : undefined;
   }
   return undefined;

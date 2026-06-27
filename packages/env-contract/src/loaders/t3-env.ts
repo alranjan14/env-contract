@@ -20,17 +20,13 @@ export function introspectT3Env(obj: unknown): Schema {
   const env = obj as T3EnvLike;
   const entries: SchemaEntry[] = [];
 
-  // `as Parameters<...>` defers to whatever the zod introspector accepts without
-  // re-exporting its internal schema type.
-  type ZodInput = Parameters<typeof introspectZodSchema>[0];
-
   if (env._server) {
-    const serverSchema = introspectZodSchema(env._server as ZodInput, "server");
+    const serverSchema = introspectZodSchema(env._server, "server");
     entries.push(...serverSchema.entries);
   }
 
   if (env._client) {
-    const clientSchema = introspectZodSchema(env._client as ZodInput, "client");
+    const clientSchema = introspectZodSchema(env._client, "client");
     entries.push(...clientSchema.entries);
   }
 

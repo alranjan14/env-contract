@@ -39,7 +39,11 @@ async function installPackedPackage(peerPackages: PeerPackage[] = []) {
   const peerPackagePaths = peerPackages.map((peer) => getPackageRoot(peer));
 
   await fs.writeFile(path.join(tmpDir, "package.json"), JSON.stringify({ type: "module" }));
-  exec("npm", ["install", "--silent", tarballPath, ...peerPackagePaths, "--ignore-scripts"], tmpDir);
+  exec(
+    "npm",
+    ["install", "--silent", tarballPath, ...peerPackagePaths, "--ignore-scripts"],
+    tmpDir,
+  );
 
   return tmpDir;
 }
@@ -63,11 +67,7 @@ async function assertPackageFunctional(tmpDir: string) {
   // 1. Assert CJS and ESM imports/requires work
   const importOutput = exec(
     process.execPath,
-    [
-      "--input-type=module",
-      "-e",
-      "import('env-contract').then(() => console.log('import ok'))",
-    ],
+    ["--input-type=module", "-e", "import('env-contract').then(() => console.log('import ok'))"],
     tmpDir,
   );
   expect(importOutput).toContain("import ok");
@@ -96,16 +96,20 @@ async function assertPackageFunctional(tmpDir: string) {
   // 3. Assert TypeScript type resolution works in a downstream project
   await fs.writeFile(
     path.join(tmpDir, "tsconfig.json"),
-    JSON.stringify({
-      compilerOptions: {
-        target: "ES2022",
-        module: "Node16",
-        moduleResolution: "Node16",
-        strict: true,
-        esModuleInterop: true,
-        skipLibCheck: true,
+    JSON.stringify(
+      {
+        compilerOptions: {
+          target: "ES2022",
+          module: "Node16",
+          moduleResolution: "Node16",
+          strict: true,
+          esModuleInterop: true,
+          skipLibCheck: true,
+        },
       },
-    }, null, 2),
+      null,
+      2,
+    ),
   );
 
   await fs.writeFile(

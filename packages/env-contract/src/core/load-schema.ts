@@ -11,7 +11,7 @@ const registeredLoaders = [t3EnvLoader, zodLoader, valibotLoader, arktypeLoader]
 
 export async function loadSchema(
   pathOrOptions: string | { path: string; cwd?: string },
-  cwdFallback?: string
+  cwdFallback?: string,
 ): Promise<Schema> {
   let schemaPath: string;
   let cwd = cwdFallback || process.cwd();
@@ -25,9 +25,7 @@ export async function loadSchema(
     schemaPath = pathOrOptions;
   }
 
-  const absolutePath = path.isAbsolute(schemaPath) 
-    ? schemaPath 
-    : path.resolve(cwd, schemaPath);
+  const absolutePath = path.isAbsolute(schemaPath) ? schemaPath : path.resolve(cwd, schemaPath);
 
   const jiti = createJiti(import.meta.url, {
     interopDefault: true,
@@ -35,7 +33,7 @@ export async function loadSchema(
   });
 
   try {
-    const mod = await jiti.import(absolutePath) as Record<string, unknown>;
+    const mod = await jiti.import<Record<string, unknown>>(absolutePath);
 
     // Sort keys to prioritize explicit naming conventions
     const keys = Object.keys(mod);
@@ -69,7 +67,9 @@ export async function loadSchema(
     }
     const message = toError(error).message;
     if (message && !message.includes("Could not find a valid")) {
-      throw new Error(`Failed to load schema from ${schemaPath}.\n👉 Suggestion: Check the file for syntax or TypeScript errors.\n\nUnderlying error:\n${message}`);
+      throw new Error(
+        `Failed to load schema from ${schemaPath}.\n👉 Suggestion: Check the file for syntax or TypeScript errors.\n\nUnderlying error:\n${message}`,
+      );
     }
     throw error;
   }
