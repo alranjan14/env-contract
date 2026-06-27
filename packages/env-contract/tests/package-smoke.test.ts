@@ -13,6 +13,9 @@ type PeerPackage = "zod" | "valibot" | "arktype";
 function exec(command: string, args: string[], cwd: string): string {
   const env = { ...process.env };
   delete env.NODE_PATH;
+  // Ensure npm prints plain output (a publish context can set this, which would
+  // make `npm pack` emit JSON and break tarball-name parsing).
+  delete env.npm_config_json;
   delete env.npm_config_manage_package_manager_versions;
   delete env.npm_config_recursive;
 
