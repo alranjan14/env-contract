@@ -194,7 +194,9 @@ export async function scanSource(
 }
 
 async function scanFile(filePath: string, baseCwd: string): Promise<ScanReport> {
-  const relPath = path.relative(baseCwd, filePath);
+  // Normalize to forward slashes so reported paths are consistent across OSes
+  // (Windows path.relative yields backslashes).
+  const relPath = path.relative(baseCwd, filePath).replace(/\\/g, "/");
   const report: ScanReport = { references: [], dynamic: [], warnings: [] };
   try {
     const code = await fs.readFile(filePath, "utf-8");

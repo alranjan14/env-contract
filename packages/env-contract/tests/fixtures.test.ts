@@ -155,8 +155,8 @@ describe("Realistic Fixtures Integrations (P2)", () => {
       expect(result.data).toHaveLength(2);
 
       const reports = result.data as ScanReportData[];
-      const webRep = reports.find((r) => r.package?.endsWith("apps/web"));
-      const apiRep = reports.find((r) => r.package?.endsWith("packages/api"));
+      const webRep = reports.find((r) => r.package?.endsWith(path.join("apps", "web")));
+      const apiRep = reports.find((r) => r.package?.endsWith(path.join("packages", "api")));
 
       expect(webRep).toBeDefined();
       expect(webRep?.orphanedRefs).toHaveLength(0);

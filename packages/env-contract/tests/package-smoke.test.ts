@@ -135,7 +135,10 @@ console.log(typeof scan, typeof check, typeof generateExample);
   expect(tscOutput).toBeDefined();
 }
 
-describe("published package smoke tests", () => {
+// Packaging and import behavior is OS-independent, and these tests shell out to
+// npm/npx (which are `.cmd` on Windows) and perform real installs. Run them on
+// Linux only to avoid cross-platform exec issues and redundant slow CI jobs.
+describe.skipIf(process.platform !== "linux")("published package smoke tests", () => {
   it("can be imported and required without validator peers installed", async () => {
     const tmpDir = await installPackedPackage();
 

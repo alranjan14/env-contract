@@ -3,6 +3,8 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 
 const PACKAGE_DIR = path.resolve(__dirname, "..");
+// npm is `npm.cmd` on Windows; execFileSync needs the exact executable name.
+const NPM = process.platform === "win32" ? "npm.cmd" : "npm";
 
 interface PackedFile {
   path: string;
@@ -18,7 +20,7 @@ interface PackResult {
 }
 
 function runNpmPack(): PackResult {
-  const output = execFileSync("npm", ["pack", "--dry-run", "--json"], {
+  const output = execFileSync(NPM, ["pack", "--dry-run", "--json"], {
     cwd: PACKAGE_DIR,
     encoding: "utf-8",
   });
