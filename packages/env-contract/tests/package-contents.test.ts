@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import path from "node:path";
 
 const PACKAGE_DIR = path.resolve(__dirname, "..");
-// npm is `npm.cmd` on Windows; execFileSync needs the exact executable name.
-const NPM = process.platform === "win32" ? "npm.cmd" : "npm";
 
 interface PackedFile {
   path: string;
@@ -20,7 +18,9 @@ interface PackResult {
 }
 
 function runNpmPack(): PackResult {
-  const output = execFileSync(NPM, ["pack", "--dry-run", "--json"], {
+  // Run through a shell so `npm` resolves to npm.cmd on Windows. execFileSync
+  // can't spawn .cmd files without a shell (EINVAL since Node's CVE-2024-27980 fix).
+  const output = execSync("npm pack --dry-run --json", {
     cwd: PACKAGE_DIR,
     encoding: "utf-8",
   });
