@@ -3,7 +3,8 @@
 Keep your env schema, your `.env.example`, and your code references honest with each other.
 
 [![npm](https://img.shields.io/npm/v/env-contract)](https://www.npmjs.com/package/env-contract)
-[![CI](https://github.com/alranjan14/env-contract/actions/workflows/ci.yml/badge.svg)](https://github.com/alranjan14/env-contract/actions)
+[![CI](https://github.com/alranjan14/env-contract/actions/workflows/ci.yml/badge.svg)](https://github.com/alranjan14/env-contract/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/env-contract)](./LICENSE)
 
 ---
 
