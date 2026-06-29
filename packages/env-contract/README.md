@@ -90,11 +90,48 @@ These flags apply to all commands:
 | `--cwd <path>` | Override the current working directory. |
 | `--silent` | Suppress all stdout reporter logs except errors. |
 | `--json` | Force the reporter to print structured JSON. |
+| `--debug` | Print resolved paths and timings to stderr (also enabled via `DEBUG=env-contract*`). |
 
 ### Exit Codes
+
+Exit codes are a stable part of the CLI contract (see [ADR 0004](./docs/adr/0004-exit-code-semantics.md)):
+
 -   `0`: Healthy. No drift found.
 -   `1`: Drift detected (mismatch between schema and `.env.example`, or orphaned/untracked references in code).
 -   `2`: Configuration/Runtime error (e.g., compile issues in the schema file, invalid configuration).
+
+### Machine Output (`--json`)
+
+Every command accepts `--json` and prints a single JSON object to stdout. The payload is **versioned** so downstream parsers can detect and adapt to shape changes:
+
+-   **`schemaVersion`** (number): the output schema version. It is currently `1` and is incremented only on a backward-incompatible change to the shape below.
+
+Single-project mode is a flat object (e.g. `env-contract check --json`):
+
+```json
+{
+  "schemaVersion": 1,
+  "syncDrift": false,
+  "exampleDrift": { "missingInExample": [], "extraInExample": [] },
+  "orphanedRefs": [],
+  "unusedSchemaKeys": [],
+  "dynamicRefs": [],
+  "warnings": []
+}
+```
+
+Workspace mode (`--workspace`) wraps the per-package results under `packages`:
+
+```json
+{
+  "schemaVersion": 1,
+  "packages": [
+    { "package": "packages/api", "syncDrift": false, "orphanedRefs": [], "...": "..." }
+  ]
+}
+```
+
+When a target fails to process, its object carries an `error` string instead of results, and the process exits `2`. Human status text and `--debug` diagnostics go to **stderr**, never stdout, so a `--json` stream is always clean to parse.
 
 ---
 
@@ -169,6 +206,18 @@ export default defineConfig({
 ```
 
 You can also specify this under the `"env-contract"` field in your `package.json`.
+
+---
+
+## Security
+
+`env-contract` discovers your schema and config files by **importing** them, which **executes that code** in the current Node process — the same trust model as `eslint.config.js`, `vite.config.ts`, or Jest config files. Practical implications:
+
+-   Run `env-contract` only against repositories you trust. In CI, treat it like any other step that runs repository code — avoid pointing `check` at untrusted pull requests in a privileged context.
+-   It reads env **variable names** only (from your schema and the managed block of `.env.example`). It never reads, prints, or stores secret **values**.
+-   No telemetry, no network access, no postinstall scripts.
+
+See [SECURITY.md](../../SECURITY.md) for the full policy and how to report a vulnerability.
 
 ---
 

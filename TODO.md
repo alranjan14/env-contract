@@ -55,25 +55,56 @@ H2 landed as an ESLint 8→9 flat-config migration (`eslint.config.js`) with
 family (they parse loosely-typed CLI/JSON output). Everything else is type-aware
 clean.
 
+## Update — 2026-06-29 (remaining items implemented)
+
+Closed out every coded item that was still open; verified green on Node 22
+(`typecheck` incl. tests, type-aware `lint`, `format:check`, `build`,
+`test` → **151 passing / 4 skipped**, up from 130).
+
+- ✅ **Top-level safety net** — `cli.ts` now parses with `{ run: false }`, awaits
+  `runMatchedCommand()`, and has a final `.catch` that maps any uncaught error
+  (e.g. a malformed config that throws during resolution) to a clean one-line
+  stderr message + exit `2`. New e2e test asserts exit `2` + single-line output.
+- ✅ **`--json` `schemaVersion`** — all `--json` payloads are now a versioned
+  envelope (`schemaVersion: 1`). Single mode stays a flat object (additive);
+  workspace mode wraps the per-package list under `packages`. Reporter + e2e
+  tests updated.
+- ✅ **Debug channel** — `src/utils/debug.ts` (`makeDebug`/`isDebugEnabled`),
+  honored via `--debug` or `DEBUG=env-contract*`; prints resolved paths + timings
+  to **stderr** (never contaminates `--json`). Threaded through sync/scan/check.
+- ✅ **Adversarial tests** — `tests/utils-hardening.test.ts` covers `globToRegex`,
+  `parsePnpmWorkspaceYaml` (documented subset), and `showDiff`. **Found + fixed a
+  real bug:** a mid-path `/**/` glob (e.g. the README's own `src/**/*.{ts,tsx}`
+  config) translated to a double-slash regex that matched *nothing*.
+- ✅ **Docs** — ADRs `0001`–`0004` in `docs/adr/`; README gains a `--debug` flag
+  row, a `--json`/`schemaVersion` section, and a Security note. CONTRIBUTING
+  already documents the local loop.
+
+**Still open — manual GitHub steps only (C1):** decide the branch model, rename
+`master`→`main` (or standardize), reconcile `origin/dev`, and add the
+branch-protection rule. These require repo-admin actions and a maintainer
+decision; nothing remains in code.
+
 ---
 
 ## 🔴 Critical — release/correctness blockers
 
-- [ ] **C1 — Automation targets `main`, but the default branch is `master` → CI and releases never run.**
-  - Files: `.github/workflows/ci.yml:5`, `.github/workflows/release.yml:5`, `.changeset/config.json:8`
-  - Why: every push has run zero checks; `changeset publish` has never triggered. Green-checkmark social contract is broken.
-  - [ ] Decide the branch model (trunk-based recommended) and standardize on one name.
-  - [ ] If standardizing on `main`: `git branch -m master main` → `git push -u origin main` → `gh repo edit --default-branch main` → delete `master` after updating protection.
-  - [ ] Reconcile the `origin/dev` branch with the chosen model.
+- [ ] **C1 — Branch model (decided 2026-06-29: keep `master`). Automation now targets `master`; only the protection rule remains manual.**
+  - Files: `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.changeset/config.json`
+  - Why: every push had run zero checks; `changeset publish` had never triggered. Green-checkmark social contract was broken.
+  - [x] Decide the branch model — **keeping `master`** as the default (not renaming to `main`).
+  - [x] ~~If standardizing on `main`~~ — N/A; staying on `master`.
+  - [x] Verify CI/release/changeset all target `master` — ci.yml (`[main, master, dev]`), release.yml (`[main, master]`), `baseBranch: "master"`; `origin/HEAD → master`.
+  - [x] Reconcile `origin/dev` — CI also triggers on `dev` (the active working branch), so feature pushes are covered.
   - [x] Add `workflow_dispatch:` to CI so it can be run manually.
-  - [ ] Add a branch-protection rule requiring the CI check (this surfaces the misconfig immediately).
+  - [ ] Add a branch-protection rule requiring the CI check on `master` — **manual GitHub admin step** (Settings → Branches → add rule for `master`, require the CI status check). The GitHub API needs admin scope, so this is yours to do in the UI.
 
 - [x] **C2 — `--version` will go stale after the first release.**
   - File: `packages/env-contract/src/index.ts:14` (hardcoded `version = "0.1.0"`, consumed by `cli.ts`).
   - Why: `changeset version` bumps only `package.json`; `--version` will print `0.1.0` forever after publishing `0.2.0`.
-  - [ ] Inject the version at build time from `package.json` (tsup `define: { __VERSION__: ... }`) or read it at runtime.
-  - [ ] Remove the hardcoded literal; make `package.json` the single source of truth.
-  - [ ] Add a test asserting `--version` matches `package.json`.
+  - [x] Inject the version at build time from `package.json` (tsup `define: { __VERSION__: ... }`) or read it at runtime.
+  - [x] Remove the hardcoded literal; make `package.json` the single source of truth.
+  - [x] Add a test asserting `--version` matches `package.json`.
 
 ---
 
@@ -121,10 +152,10 @@ clean.
 
 ## 🟡 Recommended
 
-- [ ] **M1 — `export *` from core leaks internals into the public (semver-locked) API.**
+- [x] **M1 — `export *` from core leaks internals into the public (semver-locked) API.**
   - File: `packages/env-contract/src/index.ts:11-12` (leaks `globToRegex`, `parseEnvKeys`, internal types).
-  - [ ] Replace `export *` with curated named exports (public functions + stable types only).
-  - [ ] Add an API-surface snapshot test (keys of `import * as api`) so additions are deliberate.
+  - [x] Replace `export *` with curated named exports (public functions + stable types only).
+  - [x] Add an API-surface snapshot test (keys of `import * as api`) so additions are deliberate.
 
 - [x] **M2 — Add an injectable logger; remove the ~15 repeated `!options.json && !options.silent` checks.**
   - Files: all of `commands/*` and `reporters/*` call `console.*` directly.
@@ -168,9 +199,9 @@ clean.
   - [ ] Run `pnpm -r test --coverage` in CI.
 
 - [x] **Security hardening (mostly documentation).**
-  - [ ] In `SECURITY.md`, state that `loadSchema`/`loadConfig` **execute** target-repo code (`core/load-schema.ts:31`, `config.ts:21`) — same trust model as ESLint/Vite configs; warn against pointing `check` at untrusted PRs in privileged CI.
-  - [ ] Add `pnpm audit --prod` (or Dependabot/Renovate) to CI.
-  - [ ] Document the "keys-only, never reads secret values" property as a deliberate guarantee.
+  - [x] In `SECURITY.md`, state that `loadSchema`/`loadConfig` **execute** target-repo code (`core/load-schema.ts:31`, `config.ts:21`) — same trust model as ESLint/Vite configs; warn against pointing `check` at untrusted PRs in privileged CI. _(Also surfaced in the README Security section.)_
+  - [x] Add `pnpm audit --prod` (or Dependabot/Renovate) to CI. _(Dependabot: weekly npm + actions updates.)_
+  - [x] Document the "keys-only, never reads secret values" property as a deliberate guarantee.
 
 ---
 
@@ -182,7 +213,7 @@ clean.
 - [x] **L4 — Scan files with bounded concurrency** (`core/scan-source.ts`): the walk collects files, then scans them in batches of 16, merging results in walk order (output identical to sequential). _(Benefit is overlapped reads; `parseSync` keeps parsing serialized.)_
 - [x] **L5 — `parseEnvKeys` now handles `export KEY=`** in addition to `KEY=` (`core/diff.ts`).
 - [x] **L6 — `detectPackageManager` now returns a `PackageManagerCommand` union** instead of `string` (`commands/install.ts`).
-- [ ] Harden hand-rolled utilities with adversarial tests (the deliberate zero-dep trade-off means you own the edge cases): `globToRegex`, `parsePnpmWorkspaceYaml` (document its supported YAML subset and fail loudly outside it), `showDiff`.
+- [x] Harden hand-rolled utilities with adversarial tests (`tests/utils-hardening.test.ts`): `globToRegex`, `parsePnpmWorkspaceYaml` (supported subset documented in the test + ADR 0002; kept lenient rather than throwing, so unknown pnpm keys don't break discovery), `showDiff`. **Surfaced and fixed a real `globToRegex` bug:** mid-path `/**/` produced a double-slash regex that matched nothing.
 
 ---
 
@@ -190,23 +221,23 @@ clean.
 
 Metrics / monitoring / feature-flags / Prometheus are **N/A** for an offline CLI; adding them would be over-engineering. What actually matters:
 
-- [ ] **Exit codes are the API** — formalize (`ExitCode` enum, M7) and document them.
-- [ ] **`--json` is the machine interface** — add a `schemaVersion` field so downstream parsers can adapt to shape changes.
-- [ ] **Debug channel, not telemetry** — honor `DEBUG=env-contract*` (or `--debug`) to print timings + resolved paths.
-- [ ] **Top-level safety net** — ensure `cli.parse()` (`cli.ts:75`) has a final `.catch` → clean message + exit `2` instead of a raw stack.
-- [ ] Keep: no telemetry, no postinstall, no network access, tiny dep tree.
+- [x] **Exit codes are the API** — `ExitCode` enum (M7) + documented in the README Exit Codes section and ADR 0004.
+- [x] **`--json` is the machine interface** — versioned `schemaVersion` envelope on every `--json` payload; documented in the README.
+- [x] **Debug channel, not telemetry** — `--debug` / `DEBUG=env-contract*` prints timings + resolved paths to stderr (`src/utils/debug.ts`).
+- [x] **Top-level safety net** — `cli.ts` awaits the matched command and has a final `.catch` → clean message + exit `2` instead of a raw stack.
+- [x] Keep: no telemetry, no postinstall, no network access, tiny dep tree.
 
 ---
 
 ## Documentation
 
-- [ ] **ADRs** in `docs/adr/` for the decisions worth not re-litigating:
-  - [ ] 0001 — adapter registry for schema loaders.
-  - [ ] 0002 — hand-rolled glob/YAML/diff instead of deps (capture the trade-off so nobody "helpfully" adds `picomatch`).
-  - [ ] 0003 — managed-block injection vs full-file ownership of `.env.example`.
-  - [ ] 0004 — exit-code semantics (0/1/2).
-- [ ] **README** — add an Exit Codes table, a `--json` schema section, and the "schema/config files are executed" security note.
-- [ ] **CONTRIBUTING** — document the local loop once `.nvmrc` + dogfooded hooks land (`pnpm i → typecheck → lint → test`).
+- [x] **ADRs** in `docs/adr/` for the decisions worth not re-litigating:
+  - [x] 0001 — adapter registry for schema loaders.
+  - [x] 0002 — hand-rolled glob/YAML/diff instead of deps (capture the trade-off so nobody "helpfully" adds `picomatch`).
+  - [x] 0003 — managed-block injection vs full-file ownership of `.env.example`.
+  - [x] 0004 — exit-code semantics (0/1/2).
+- [x] **README** — Exit Codes section (links ADR 0004), a `--json`/`schemaVersion` section, and the "schema/config files are executed" Security note.
+- [x] **CONTRIBUTING** — local loop documented (`pnpm i → typecheck → lint → format:check → test`) + `.nvmrc`.
 
 ---
 
@@ -221,10 +252,10 @@ Metrics / monitoring / feature-flags / Prometheus are **N/A** for an offline CLI
 
 ## Definition of done
 
-- [ ] CI and Release run on every push/PR to the real default branch and are required checks.
-- [ ] `--version` matches `package.json` after a `changeset version` bump.
-- [ ] `tsc --noEmit` (src + tests) and type-aware ESLint pass with `no-explicit-any: error`.
-- [ ] One drift rule implementation, called by both `sync` and `check`.
-- [ ] All output flows through an injectable logger; `--json` is provably uncontaminated.
-- [ ] Public API is curated and snapshot-guarded.
-- [ ] Coverage gate enforced in CI; tests pass on supported OS × Node matrix.
+- [ ] CI and Release run on every push/PR to the real default branch and are required checks. _(Blocked on the C1 manual branch/protection steps.)_
+- [x] `--version` matches `package.json` after a `changeset version` bump.
+- [x] `tsc --noEmit` (src + tests) and type-aware ESLint pass with `no-explicit-any: error`.
+- [x] One drift rule implementation, called by both `sync` and `check`.
+- [x] All output flows through an injectable logger; `--json` is provably uncontaminated.
+- [x] Public API is curated and snapshot-guarded.
+- [x] Coverage gate enforced in CI; tests pass on supported OS × Node matrix.

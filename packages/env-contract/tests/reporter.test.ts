@@ -28,11 +28,12 @@ describe("JSON Reporter", () => {
 
     const formatted = formatJsonCheck(report);
     const parsed = JSON.parse(formatted);
-    expect(parsed).toBeInstanceOf(Array);
-    expect(parsed[0].package).toBe("/path/to/pkg-a");
-    expect(parsed[0].syncDrift).toBe(true);
-    expect(parsed[0].exampleDrift.missingInExample).toContain("PORT");
-    expect(parsed[0].orphanedRefs[0].key).toBe("DB_URL");
+    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.packages).toBeInstanceOf(Array);
+    expect(parsed.packages[0].package).toBe("/path/to/pkg-a");
+    expect(parsed.packages[0].syncDrift).toBe(true);
+    expect(parsed.packages[0].exampleDrift.missingInExample).toContain("PORT");
+    expect(parsed.packages[0].orphanedRefs[0].key).toBe("DB_URL");
   });
 
   it("should format check reports in single-package mode", () => {
@@ -57,6 +58,7 @@ describe("JSON Reporter", () => {
 
     const formatted = formatJsonCheck(report);
     const parsed = JSON.parse(formatted);
+    expect(parsed.schemaVersion).toBe(1);
     expect(parsed).not.toBeInstanceOf(Array);
     expect(parsed.syncDrift).toBe(false);
     expect(parsed.exampleDrift.missingInExample).toHaveLength(0);
@@ -86,8 +88,9 @@ describe("JSON Reporter", () => {
     ];
     const formattedMulti = formatJsonSync(multiReports);
     const parsedMulti = JSON.parse(formattedMulti);
-    expect(parsedMulti).toBeInstanceOf(Array);
-    expect(parsedMulti[0].package).toBe("pkg-a");
+    expect(parsedMulti.schemaVersion).toBe(1);
+    expect(parsedMulti.packages).toBeInstanceOf(Array);
+    expect(parsedMulti.packages[0].package).toBe("pkg-a");
   });
 
   it("should format scan reports for single and multiple packages", () => {
@@ -114,8 +117,9 @@ describe("JSON Reporter", () => {
     ];
     const formattedMulti = formatJsonScan(multiReports);
     const parsedMulti = JSON.parse(formattedMulti);
-    expect(parsedMulti).toBeInstanceOf(Array);
-    expect(parsedMulti[0].package).toBe("pkg-a");
+    expect(parsedMulti.schemaVersion).toBe(1);
+    expect(parsedMulti.packages).toBeInstanceOf(Array);
+    expect(parsedMulti.packages[0].package).toBe("pkg-a");
   });
 });
 

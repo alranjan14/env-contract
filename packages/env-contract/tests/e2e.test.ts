@@ -183,6 +183,7 @@ export const schema = z.object({
     }
 
     const report = JSON.parse(stdout);
+    expect(report.schemaVersion).toBe(1); // versioned envelope for downstream parsers
     expect(report).toHaveProperty("syncDrift", true); // No example file exists
     expect(report).toHaveProperty("orphanedRefs");
     expect(report.orphanedRefs).toHaveLength(0);
@@ -472,5 +473,33 @@ ANOTHER_MANUAL_VAR=456
     const errorReport = JSON.parse(errorStdout);
     expect(errorReport.error).toBeDefined();
     expect(errorReport.error).toContain("Schema file not found");
+  });
+
+  it("exits 2 with a clean message (not a raw stack) when the config is malformed", async () => {
+    const badDir = path.join(TMP_DIR, "bad-config");
+    await fs.mkdir(path.join(badDir, "src"), { recursive: true });
+    await fs.writeFile(
+      path.join(badDir, "src/env.ts"),
+      `import { z } from "zod";\nexport const schema = z.object({ A: z.string() });\n`,
+    );
+    // Loads fine but is the wrong shape: assertConfig must reject it, and the
+    // top-level safety net must turn that throw into a clean exit 2 — this path
+    // (config resolution) runs before a command's own try/catch.
+    await fs.writeFile(path.join(badDir, "env-contract.config.ts"), `export default 123;\n`);
+
+    let status: number | null = 0;
+    let stderr = "";
+    try {
+      execSync(`node ${CLI_PATH} check`, { cwd: badDir, stdio: "pipe" });
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
+      status = e.status;
+      stderr = e.stderr.toString();
+    }
+
+    expect(status).toBe(2);
+    expect(stderr).toContain("must export an object");
+    // A single clean line, never a multi-line V8 stack trace.
+    expect(stderr.trim().split("\n")).toHaveLength(1);
   });
 });

@@ -4,21 +4,31 @@ import { reportCheck } from "../reporters/pretty.js";
 import { findWorkspacePackages } from "../utils/workspace.js";
 import { toError } from "../utils/errors.js";
 import { makeLogger } from "../utils/logger.js";
+import { makeDebug } from "../utils/debug.js";
 import { ExitCode } from "../utils/exit-code.js";
 import type { Config } from "../config.js";
 import type { CheckReport, PackageCheckReport } from "../reporters/types.js";
 
 export async function runCheck(
-  options: { strict?: boolean; json?: boolean; workspace?: boolean; cwd?: string; schema?: string },
+  options: {
+    strict?: boolean;
+    json?: boolean;
+    workspace?: boolean;
+    cwd?: string;
+    schema?: string;
+    debug?: boolean;
+  },
   _config: Config = {},
 ): Promise<{ code: ExitCode }> {
   const cwd = options.cwd || process.cwd();
   const logger = makeLogger({ json: options.json });
+  const dbg = makeDebug(options.debug);
 
   let checkReport: CheckReport;
 
   if (options.workspace) {
     const packages = await findWorkspacePackages(cwd);
+    dbg.log(`check: ${packages.length} workspace packages`);
     const packageReports: PackageCheckReport[] = [];
     let ok = true;
 
@@ -65,11 +75,14 @@ export async function runCheck(
     };
   } else {
     try {
+      dbg.log(`check: cwd=${cwd} strict=${Boolean(options.strict)}`);
+      const done = dbg.timer("check: single package");
       const pkgReport = await check({
         cwd,
         strict: options.strict,
         schema: options.schema,
       });
+      done();
 
       checkReport = {
         ok: pkgReport.ok,

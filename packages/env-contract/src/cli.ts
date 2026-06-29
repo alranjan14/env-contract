@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { cac } from "cac";
+import pc from "picocolors";
 import { version } from "./index.js";
 import { resolveConfig } from "./config.js";
 import { ExitCode } from "./utils/exit-code.js";
+import { toError } from "./utils/errors.js";
 
 // cac hands action callbacks an untyped options bag; this is the typed view of
 // the global + per-command flags declared below. Annotating the callback param
@@ -14,6 +16,7 @@ interface CliOptions {
   cwd?: string;
   silent?: boolean;
   json?: boolean;
+  debug?: boolean;
   // sync
   target?: string;
   yes?: boolean;
@@ -35,7 +38,8 @@ cli
   .option("--schema <path>", "Path to env schema file")
   .option("--cwd <path>", "Working directory")
   .option("--silent", "Suppress non-error output")
-  .option("--json", "Machine-readable output");
+  .option("--json", "Machine-readable output")
+  .option("--debug", "Print timings and resolved paths to stderr");
 
 cli
   .command("sync", "Generate or update .env.example from the schema")
@@ -106,4 +110,18 @@ cli
 cli.help();
 cli.version(version);
 
-cli.parse();
+async function main(): Promise<void> {
+  // Parse without running so we can `await` the matched command and catch any
+  // rejection (cac fires async actions but does not await them itself).
+  cli.parse(process.argv, { run: false });
+  await cli.runMatchedCommand();
+}
+
+main().catch((error: unknown) => {
+  // Final safety net: a failure that escapes a command's own handling — e.g. a
+  // malformed config that throws during resolution, before the command body
+  // runs — becomes a clean one-line message on stderr and the RuntimeError exit
+  // code, never a raw stack trace.
+  process.stderr.write(pc.red(`✖ ${toError(error).message}\n`));
+  process.exit(ExitCode.RuntimeError);
+});
