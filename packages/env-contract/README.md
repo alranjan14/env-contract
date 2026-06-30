@@ -278,13 +278,19 @@ Check for a `SKIP_ENV_VALIDATION` flag in your schema loader file:
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
-export const env = createEnv({
+// Export the schema records so env-contract can introspect them — `createEnv`'s
+// return value exposes only validated values, not your schemas.
+export const envSchema = {
   server: {
     DATABASE_URL: z.string().url(),
   },
   client: {
     NEXT_PUBLIC_API_URL: z.string().url(),
   },
+};
+
+export const env = createEnv({
+  ...envSchema,
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
