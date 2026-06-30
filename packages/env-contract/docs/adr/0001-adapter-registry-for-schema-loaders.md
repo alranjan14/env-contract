@@ -25,6 +25,16 @@ picks the **first** registered loader whose `matches()` returns true. Adding a
 new library means adding one file under `src/loaders/` and registering it — no
 change to the core or to the commands.
 
+Order encodes a preference: the vendor-specific loaders (t3-env, Zod, Valibot,
+ArkType) come first, and a generic **Standard Schema** adapter
+(`src/loaders/standard-schema.ts`) is registered **last** as the catch-all.
+Because Zod/Valibot/ArkType are all Standard-Schema-compliant, the specific
+loaders win for their vendors (richer key/type/default/description info); the
+generic adapter only fires for vendors we don't otherwise recognize. It recovers
+**required** keys by validating an empty object and reading each issue's `path`
+— Standard Schema exposes validation, not introspection, so optional keys are
+not discoverable that way (a documented limitation).
+
 ## Consequences
 
 - **+** New schema libraries are isolated, self-contained additions.

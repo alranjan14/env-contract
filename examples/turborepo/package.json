@@ -1,0 +1,13 @@
+{
+  "name": "example-turborepo",
+  "private": true,
+  "description": "env-contract example: a pnpm + Turborepo monorepo checked with --workspace.",
+  "scripts": {
+    "env:check": "env-contract check --workspace",
+    "env:check:turbo": "turbo run env:check"
+  },
+  "devDependencies": {
+    "env-contract": "^0.1.0",
+    "turbo": "^2.0.0"
+  }
+}

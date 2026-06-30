@@ -1,7 +1,7 @@
 // oxc@0.31 serializes its AST to a JSON string, so we parse it and walk a typed
 // structural view (AstNode) of the nodes we inspect. Removing the JSON round-trip
-// would require upgrading oxc-parser, whose node names change across versions
-// (tracked in TODO.md); the typing here makes the walk fully type-safe regardless.
+// would require upgrading oxc-parser, whose node names change across versions;
+// the typing here makes the walk fully type-safe regardless.
 import fs from "node:fs/promises";
 import path from "node:path";
 import oxc from "oxc-parser";

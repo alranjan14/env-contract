@@ -1,5 +1,5 @@
 // NOTE: navigates ArkType's internal `inner.structure.propsByKey` shapes (not
-// publicly typed). `any` here is quarantined in eslint.config.js; see M4 in TODO.md.
+// publicly typed). `any` here is quarantined in eslint.config.js.
 import type { Schema, SchemaEntry } from "./types.js";
 
 export function introspectArkTypeSchema(obj: any, scope: "server" | "client" = "server"): Schema {

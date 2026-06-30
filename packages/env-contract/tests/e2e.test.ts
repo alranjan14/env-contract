@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -501,5 +501,38 @@ ANOTHER_MANUAL_VAR=456
     expect(stderr).toContain("must export an object");
     // A single clean line, never a multi-line V8 stack trace.
     expect(stderr.trim().split("\n")).toHaveLength(1);
+  });
+
+  it("keeps --json stdout clean while --debug writes diagnostics only to stderr", async () => {
+    const dir = path.join(TMP_DIR, "json-debug");
+    await fs.mkdir(path.join(dir, "src"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, "src/env.ts"),
+      `import { z } from "zod";\nexport const schema = z.object({ JSON_DEBUG_VAR: z.string() });\n`,
+    );
+    await fs.writeFile(
+      path.join(dir, "src/index.ts"),
+      `console.log(process.env.JSON_DEBUG_VAR);\n`,
+    );
+    // Sync first so `check` is clean (exit 0) and stdout is a single JSON object.
+    execSync(`node ${CLI_PATH} sync --yes`, { cwd: dir });
+
+    const result = spawnSync("node", [CLI_PATH, "check", "--json", "--debug"], {
+      cwd: dir,
+      encoding: "utf-8",
+    });
+
+    expect(result.status).toBe(0);
+
+    // stdout must be pure, parseable JSON — no debug noise leaked in. JSON.parse
+    // would throw if a diagnostic line had been written to stdout.
+    const report = JSON.parse(result.stdout);
+    expect(report.schemaVersion).toBe(1);
+    expect(result.stdout).not.toMatch(/\+\d+ms/);
+    expect(result.stdout.toLowerCase()).not.toContain("check:");
+
+    // The diagnostics went to stderr instead.
+    expect(result.stderr).toContain("env-contract");
+    expect(result.stderr).toMatch(/\+\d+ms/);
   });
 });

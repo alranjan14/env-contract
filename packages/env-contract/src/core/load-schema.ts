@@ -4,10 +4,20 @@ import { t3EnvLoader } from "../loaders/t3-env.js";
 import { zodLoader } from "../loaders/zod.js";
 import { valibotLoader } from "../loaders/valibot.js";
 import { arktypeLoader } from "../loaders/arktype.js";
+import { standardSchemaLoader } from "../loaders/standard-schema.js";
 import type { Schema } from "../loaders/types.js";
 import { toError, errorCode } from "../utils/errors.js";
 
-const registeredLoaders = [t3EnvLoader, zodLoader, valibotLoader, arktypeLoader];
+// Vendor-specific loaders first (rich introspection); the generic Standard Schema
+// adapter is the catch-all and MUST stay last, since Zod/Valibot/ArkType are all
+// Standard-Schema-compliant and we prefer their fuller key/type/default info.
+const registeredLoaders = [
+  t3EnvLoader,
+  zodLoader,
+  valibotLoader,
+  arktypeLoader,
+  standardSchemaLoader,
+];
 
 export async function loadSchema(
   pathOrOptions: string | { path: string; cwd?: string },

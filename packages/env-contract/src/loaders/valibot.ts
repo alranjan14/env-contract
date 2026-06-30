@@ -1,5 +1,5 @@
 // NOTE: navigates Valibot's internal action/pipe shapes (not publicly typed).
-// `any` here is quarantined in eslint.config.js; see M4 in TODO.md.
+// `any` here is quarantined in eslint.config.js.
 import type { Schema, SchemaEntry } from "./types.js";
 
 export function introspectValibotSchema(obj: any, scope: "server" | "client" = "server"): Schema {

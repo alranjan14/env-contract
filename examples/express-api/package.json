@@ -1,0 +1,20 @@
+{
+  "name": "example-express-api",
+  "private": true,
+  "type": "module",
+  "description": "env-contract example: a plain Express + Zod API.",
+  "scripts": {
+    "env:sync": "env-contract sync",
+    "env:check": "env-contract check"
+  },
+  "dependencies": {
+    "env-contract": "^0.1.0",
+    "express": "^4.19.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0"
+  }
+}

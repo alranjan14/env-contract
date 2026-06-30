@@ -33,6 +33,8 @@ yarn add -D env-contract
 bun add -d env-contract
 ```
 
+> **Requires Node ≥ 22** (the current LTS line) — chosen over older floors for native APIs and a smaller shim surface.
+
 ---
 
 ## Quick Start
@@ -61,16 +63,17 @@ npx env-contract install
 
 ### 1. Supported Today (Production-Ready)
 *   **Zod**: Full support for Zod v3 and v4 schemas.
-*   **t3-env**: Full support for `@t3-oss/env-core` and `@t3-oss/env-nextjs` (including server, client, and clientPrefix presets).
+*   **t3-env** (`@t3-oss/env-core` / `@t3-oss/env-nextjs`): export your `{ server, client }` schema records alongside `createEnv` and env-contract introspects them with full server/client scope + metadata. (`createEnv`'s return value exposes only validated values, so the records are the source of truth — see the [T3 recipe](./docs/recipes.md#1-t3--t3-ossenv-core).)
 *   **Managed Blocks**: Smart updates to `.env.example` that keep human comments and custom configurations outside the `env-contract` markers.
 
 ### 2. Experimental Features (Qualifiers Applied)
 *   **Valibot & ArkType**: Basic schema introspection support. Tested on common schemas, but complex refinements or transforms may have edge cases.
+*   **Standard Schema (generic)**: Any [Standard Schema](https://standardschema.dev) validator without a dedicated loader is handled by a generic adapter. It recovers **required** keys by validating an empty object; optional keys aren't discoverable through validation alone (Standard Schema exposes validation, not introspection), so prefer a dedicated loader where one exists.
 *   **Watch Mode (`sync --watch`)**: Uses Node's native file watching. Works well in simple directory trees but might behave differently depending on OS-level file system behaviors.
 *   **Workspace Mode (`--workspace`)**: Automatically finds multiple workspace packages (via `pnpm-workspace.yaml`, npm/yarn workspace configs, or explicit package list) and runs per-package checks.
 
 ### 3. Future Roadmap
-*   **v0.3**: Standard Schema adapter integration (bringing out-of-the-box support for all compatible libraries).
+*   **v0.3**: Richer Standard Schema introspection — full type/default/description metadata for arbitrary vendors, beyond the required-key recovery shipped today.
 *   **v0.4**: Improved Monorepo optimizations and caching support.
 *   **v0.5**: VS Code Extension & Language Server Protocol (LSP) for editor diagnostics.
 
@@ -206,6 +209,46 @@ export default defineConfig({
 ```
 
 You can also specify this under the `"env-contract"` field in your `package.json`.
+
+---
+
+## Programmatic API
+
+Embed env-contract in your own tooling (build plugins, custom CI scripts). Every export is typed, and the export surface is snapshot-guarded by a test (`tests/api-surface.test.ts`) so additions are deliberate.
+
+```typescript
+import {
+  loadSchema, // (path | { path, cwd? }) => Promise<Schema>
+  generateExample, // (schema) => string  (managed-block content; does not write)
+  scan, // ({ root, patterns?, exclude?, cwd? }) => Promise<{ references, dynamic, warnings, grouped }>
+  check, // ({ cwd?, strict?, schema? }) => Promise<{ ok, exampleDrift, orphanedRefs, unusedSchemaKeys, dynamicRefs, warnings }>
+  scanSource, // lower-level AST scan
+  diff,
+  computeKeyDrift,
+  parseEnvKeys, // core engine primitives
+  defineConfig,
+  version,
+} from "env-contract";
+
+// Introspect a schema file into normalized entries.
+const schema = await loadSchema("./src/env.ts");
+// → { entries: [{ key, type, optional, default?, description?, scope }, ...] }
+
+// Generate .env.example content (string; does not touch disk).
+const content = generateExample(schema);
+
+// Scan source for process.env / import.meta.env references.
+const { references, dynamic, warnings } = await scan({
+  root: "./src",
+  patterns: ["**/*.{ts,tsx}"],
+});
+
+// Run the full check with no process.exit and no stdout.
+const report = await check({ cwd: process.cwd() });
+if (!report.ok) {
+  console.error(report.orphanedRefs, report.exampleDrift);
+}
+```
 
 ---
 
