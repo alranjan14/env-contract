@@ -33,11 +33,12 @@ npx env-contract install  # add a pre-commit hook (husky / simple-git-hooks / le
 
 - **[Full package docs](./packages/env-contract/README.md)** — CLI reference, configuration, exit codes, and a comparison table.
 - **[Framework recipes](./packages/env-contract/docs/recipes.md)** — T3, Next.js, Vite/Astro, Express/Hono, Turborepo.
+- **[Examples](./examples)** — runnable reference projects: Express + Zod, Next.js + Zod, and a Turborepo monorepo.
 - **[Contributing](./CONTRIBUTING.md)** · **[Security policy](./SECURITY.md)**
 
 ## Repository layout
 
-This is a pnpm monorepo; the published package lives in [`packages/env-contract`](./packages/env-contract).
+This is a pnpm monorepo; the published package lives in [`packages/env-contract`](./packages/env-contract). Standalone, copy-pasteable reference projects live in [`examples/`](./examples).
 
 ## License
 

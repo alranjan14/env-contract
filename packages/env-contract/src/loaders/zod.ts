@@ -1,6 +1,6 @@
 // NOTE: navigates Zod's internal `_def`/`def` shapes (which differ across v3/v4
 // and are not publicly typed). `any` here is quarantined in eslint.config.js;
-// see M4 in TODO.md for the typed-introspection follow-up. Public boundary is `unknown`.
+// fully typed introspection of these internals is a known follow-up. Public boundary is `unknown`.
 import type { Schema, SchemaEntry } from "./types.js";
 
 type ZodLikeSchema = {
@@ -13,18 +13,24 @@ type ZodLikeSchema = {
   constructor?: { name?: string };
 };
 
-export function introspectZodSchema(
-  obj: ZodLikeSchema,
+export function introspectZodSchema(obj: unknown, scope: "server" | "client" = "server"): Schema {
+  const shape = getObjectShape(obj as ZodLikeSchema) ?? {};
+  return { entries: introspectZodShape(shape, scope) };
+}
+
+/**
+ * Introspect a *record* of Zod schemas (`{ KEY: z.string(), ... }`) rather than a
+ * ZodObject. This is the shape t3-env users pass as `server`/`client` to
+ * `createEnv`, and the only way to recover their metadata (the `createEnv` result
+ * exposes validated values, not schemas).
+ */
+export function introspectZodShape(
+  shape: Record<string, unknown>,
   scope: "server" | "client" = "server",
-): Schema {
-  const entries: SchemaEntry[] = [];
-  const shape = getObjectShape(obj) ?? {};
-
-  for (const [key, schema] of Object.entries(shape)) {
-    entries.push(introspectZodType(key, schema as ZodLikeSchema, scope));
-  }
-
-  return { entries };
+): SchemaEntry[] {
+  return Object.entries(shape).map(([key, schema]) =>
+    introspectZodType(key, schema as ZodLikeSchema, scope),
+  );
 }
 
 function introspectZodType(

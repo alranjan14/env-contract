@@ -107,6 +107,35 @@ describe("Realistic Fixtures Integrations (P2)", () => {
     });
   });
 
+  describe("valibot", () => {
+    const cwd = path.join(FIXTURES_DIR, "valibot");
+
+    it("should introspect a Valibot object schema (required + optional w/ default)", async () => {
+      const result = await loadSchema(path.join(cwd, "src/env.ts"));
+      expect(result.entries).toHaveLength(3);
+      expect(result.entries).toContainEqual({
+        key: "API_KEY",
+        type: "string",
+        optional: false,
+        scope: "server",
+      });
+      expect(result.entries).toContainEqual({
+        key: "LOG_LEVEL",
+        type: "string",
+        optional: true,
+        scope: "server",
+        default: "info",
+      });
+    });
+
+    it("should verify env contract health cleanly", async () => {
+      const report = await check({ cwd });
+      expect(report.ok).toBe(true);
+      expect(report.orphanedRefs).toHaveLength(0);
+      expect(report.exampleDrift.missingInExample).toHaveLength(0);
+    });
+  });
+
   describe("orphan-refs", () => {
     const cwd = path.join(FIXTURES_DIR, "orphan-refs");
 

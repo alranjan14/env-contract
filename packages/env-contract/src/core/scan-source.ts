@@ -1,7 +1,7 @@
 // oxc@0.31 serializes its AST to a JSON string, so we parse it and walk a typed
 // structural view (AstNode) of the nodes we inspect. Removing the JSON round-trip
-// would require upgrading oxc-parser, whose node names change across versions
-// (tracked in TODO.md); the typing here makes the walk fully type-safe regardless.
+// would require upgrading oxc-parser, whose node names change across versions;
+// the typing here makes the walk fully type-safe regardless.
 import fs from "node:fs/promises";
 import path from "node:path";
 import oxc from "oxc-parser";
@@ -58,8 +58,12 @@ export function globToRegex(pattern: string): RegExp {
     return new RegExp(`^(?:^|.*/)${restRegex}$`);
   }
 
-  // Replace /**/ with a placeholder
-  normalized = normalized.replace(/\/\*\*\//g, "/__GLOBSTAR_DIR__/");
+  // Replace a mid-path `/**/` (match zero or more intervening directories) with
+  // a placeholder that ALSO absorbs the trailing slash. The placeholder emits
+  // `(?:.*/)?`, which already ends in a slash when non-empty; keeping the literal
+  // trailing slash too would produce `/(?:.*/)?/` — a spurious double slash that
+  // matches nothing (so `src/**/*.ts` matched no files at all).
+  normalized = normalized.replace(/\/\*\*\//g, "/__GLOBSTAR_DIR__");
 
   let regStr = "";
   let i = 0;

@@ -19,13 +19,20 @@ To prevent this, use `skipValidation: !!process.env.SKIP_ENV_VALIDATION` in your
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
-export const env = createEnv({
+// Export the schema *records* so env-contract can introspect them. `createEnv`'s
+// return value exposes only validated *values* (not your schemas), so this
+// `envSchema` export is what env-contract reads (it's auto-detected by name).
+export const envSchema = {
   server: {
     DATABASE_URL: z.string().url().describe("Main PostgreSQL connection URL"),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   },
-  clientPrefix: "NEXT_PUBLIC_",
   client: {},
+};
+
+export const env = createEnv({
+  ...envSchema,
+  clientPrefix: "NEXT_PUBLIC_",
   runtimeEnv: process.env,
   // Bypass runtime validation during build or CLI introspection
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
@@ -51,13 +58,19 @@ Next.js separates environment variables into server-side (private) and client-si
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
-export const env = createEnv({
+// Export the `{ server, client }` schema records — env-contract introspects
+// these (the `createEnv` result only carries validated values).
+export const envSchema = {
   server: {
     API_SECRET_KEY: z.string().min(1).describe("Private API authentication key"),
   },
   client: {
     NEXT_PUBLIC_API_URL: z.string().url().describe("Public API endpoint URL"),
   },
+};
+
+export const env = createEnv({
+  ...envSchema,
   runtimeEnv: {
     API_SECRET_KEY: process.env.API_SECRET_KEY,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
@@ -212,4 +225,43 @@ To verify all workspace packages, run the task from the monorepo root:
 
 ```bash
 pnpm turbo run env:check
+```
+
+---
+
+## 6. Nx (per-project recipe)
+
+Like Turborepo, each Nx project owns its schema and `.env.example`. Add an `env-check` target per project and run it across the graph.
+
+### Project Target (`apps/web/project.json`)
+
+```json
+{
+  "name": "web",
+  "targets": {
+    "env-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "env-contract check",
+        "cwd": "apps/web"
+      }
+    }
+  }
+}
+```
+
+### Running Checks
+
+```bash
+# A single project:
+nx run web:env-check
+
+# Every project that defines the target:
+nx run-many -t env-check
+```
+
+Alternatively, skip per-project targets and use env-contract's built-in workspace mode from the repo root — it discovers packages from your workspace config and checks each:
+
+```bash
+env-contract check --workspace
 ```

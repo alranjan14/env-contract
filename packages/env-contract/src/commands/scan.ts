@@ -10,6 +10,7 @@ import { formatJsonScan } from "../reporters/json.js";
 import { reportScan } from "../reporters/pretty.js";
 import { toError } from "../utils/errors.js";
 import { makeLogger } from "../utils/logger.js";
+import { makeDebug } from "../utils/debug.js";
 import { ExitCode } from "../utils/exit-code.js";
 import type { Config } from "../config.js";
 import type { ScanReportData } from "../reporters/types.js";
@@ -24,6 +25,7 @@ export async function runScan(
     include?: string[] | undefined;
     exclude?: string[] | undefined;
     silent?: boolean;
+    debug?: boolean;
     _internal?: boolean;
   },
   config: Config = {},
@@ -31,6 +33,7 @@ export async function runScan(
   const cwd = options.cwd || process.cwd();
   const isWorkspace = options.workspace;
   const logger = makeLogger({ json: options.json, silent: options.silent });
+  const dbg = makeDebug(options.debug);
 
   try {
     if (isWorkspace) {
@@ -41,6 +44,7 @@ export async function runScan(
       }
 
       logger.info(pc.cyan(`Scanning ${packages.length} packages in workspace...`));
+      dbg.log(`scan: ${packages.length} workspace packages`);
 
       const allReports: ScanReportData[] = [];
       let hasErrors = false;
@@ -128,11 +132,19 @@ export async function runScan(
     if (exclude) scanOptions.exclude = exclude;
 
     logger.info(pc.cyan(`Scanning source in ${rootDir}...`));
+    dbg.log(`scan: schema=${schemaPath}`);
+    dbg.log(`scan: rootDir=${rootDir}`);
 
+    const done = dbg.timer("scan: loadSchema + scanSource");
     const [schema, report] = await Promise.all([
       loadSchema(schemaPath),
       scanSource(rootDir, scanOptions),
     ]);
+    done();
+    dbg.log(
+      `scan: ${schema.entries.length} schema keys, ${report.references.length} refs, ` +
+        `${report.dynamic.length} dynamic, ${report.warnings.length} warnings`,
+    );
 
     const result = diff(schema, [], report.references, {
       strict: options.strict !== undefined ? options.strict : false,

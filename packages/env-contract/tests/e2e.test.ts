@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -183,6 +183,7 @@ export const schema = z.object({
     }
 
     const report = JSON.parse(stdout);
+    expect(report.schemaVersion).toBe(1); // versioned envelope for downstream parsers
     expect(report).toHaveProperty("syncDrift", true); // No example file exists
     expect(report).toHaveProperty("orphanedRefs");
     expect(report.orphanedRefs).toHaveLength(0);
@@ -472,5 +473,68 @@ ANOTHER_MANUAL_VAR=456
     const errorReport = JSON.parse(errorStdout);
     expect(errorReport.error).toBeDefined();
     expect(errorReport.error).toContain("Schema file not found");
+  });
+
+  it("exits 2 with a clean message (not a raw stack) when the config is malformed", async () => {
+    const badDir = path.join(TMP_DIR, "bad-config");
+    await fs.mkdir(path.join(badDir, "src"), { recursive: true });
+    await fs.writeFile(
+      path.join(badDir, "src/env.ts"),
+      `import { z } from "zod";\nexport const schema = z.object({ A: z.string() });\n`,
+    );
+    // Loads fine but is the wrong shape: assertConfig must reject it, and the
+    // top-level safety net must turn that throw into a clean exit 2 — this path
+    // (config resolution) runs before a command's own try/catch.
+    await fs.writeFile(path.join(badDir, "env-contract.config.ts"), `export default 123;\n`);
+
+    let status: number | null = 0;
+    let stderr = "";
+    try {
+      execSync(`node ${CLI_PATH} check`, { cwd: badDir, stdio: "pipe" });
+    } catch (eRaw: unknown) {
+      const e = execErr(eRaw);
+      status = e.status;
+      stderr = e.stderr.toString();
+    }
+
+    expect(status).toBe(2);
+    expect(stderr).toContain("must export an object");
+    // Clean message, not a raw multi-line V8 stack trace (no "  at …" frames).
+    // Tolerates unrelated Node deprecation/experimental warnings on stderr, which
+    // surface in some CI environments (e.g. the punycode DEP) but aren't a stack.
+    expect(stderr).not.toMatch(/^\s+at\s/m);
+  });
+
+  it("keeps --json stdout clean while --debug writes diagnostics only to stderr", async () => {
+    const dir = path.join(TMP_DIR, "json-debug");
+    await fs.mkdir(path.join(dir, "src"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, "src/env.ts"),
+      `import { z } from "zod";\nexport const schema = z.object({ JSON_DEBUG_VAR: z.string() });\n`,
+    );
+    await fs.writeFile(
+      path.join(dir, "src/index.ts"),
+      `console.log(process.env.JSON_DEBUG_VAR);\n`,
+    );
+    // Sync first so `check` is clean (exit 0) and stdout is a single JSON object.
+    execSync(`node ${CLI_PATH} sync --yes`, { cwd: dir });
+
+    const result = spawnSync("node", [CLI_PATH, "check", "--json", "--debug"], {
+      cwd: dir,
+      encoding: "utf-8",
+    });
+
+    expect(result.status).toBe(0);
+
+    // stdout must be pure, parseable JSON — no debug noise leaked in. JSON.parse
+    // would throw if a diagnostic line had been written to stdout.
+    const report = JSON.parse(result.stdout);
+    expect(report.schemaVersion).toBe(1);
+    expect(result.stdout).not.toMatch(/\+\d+ms/);
+    expect(result.stdout.toLowerCase()).not.toContain("check:");
+
+    // The diagnostics went to stderr instead.
+    expect(result.stderr).toContain("env-contract");
+    expect(result.stderr).toMatch(/\+\d+ms/);
   });
 });

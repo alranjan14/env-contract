@@ -60,6 +60,9 @@ importers:
         specifier: ^1.0.0
         version: 1.1.1
     devDependencies:
+      '@t3-oss/env-nextjs':
+        specifier: ^0.13.11
+        version: 0.13.11(arktype@2.2.0)(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@4.4.1)
       arktype:
         specifier: ^2.2.0
         version: 2.2.0
@@ -734,6 +737,40 @@ packages:
 
   '@sinclair/typebox@0.27.10':
     resolution: {integrity: sha512-MTBk/3jGLNB2tVxv6uLlFh1iu64iYOQ2PbdOSK3NW8JZsmlaOh2q6sdtKowBhfw8QFLmYNzTW4/oK4uATIi6ZA==}
+
+  '@t3-oss/env-core@0.13.11':
+    resolution: {integrity: sha512-sM7GYY+KL7H/Hl0BE0inWfk3nRHZOLhmVn7sHGxaZt9FAR6KqREXAE+6TqKfiavfXmpRxO/OZ2QgKRd+oiBYRQ==}
+    peerDependencies:
+      arktype: ^2.1.0
+      typescript: '>=5.0.0'
+      valibot: ^1.0.0-beta.7 || ^1.0.0
+      zod: ^3.24.0 || ^4.0.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      typescript:
+        optional: true
+      valibot:
+        optional: true
+      zod:
+        optional: true
+
+  '@t3-oss/env-nextjs@0.13.11':
+    resolution: {integrity: sha512-NC+3j7YWgpzdFu1t5y/8wqibTK0lm5RS4bjXA1n8uwik3wIR4iZM4Fa+U2BaMa5k3Qk8RZiYhoAIX0WogmGkzg==}
+    peerDependencies:
+      arktype: ^2.1.0
+      typescript: '>=5.0.0'
+      valibot: ^1.0.0-beta.7 || ^1.0.0
+      zod: ^3.24.0 || ^4.0.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      typescript:
+        optional: true
+      valibot:
+        optional: true
+      zod:
+        optional: true
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
@@ -2505,6 +2542,22 @@ snapshots:
     optional: true
 
   '@sinclair/typebox@0.27.10': {}
+
+  '@t3-oss/env-core@0.13.11(arktype@2.2.0)(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@4.4.1)':
+    optionalDependencies:
+      arktype: 2.2.0
+      typescript: 5.9.3
+      valibot: 1.4.0(typescript@5.9.3)
+      zod: 4.4.1
+
+  '@t3-oss/env-nextjs@0.13.11(arktype@2.2.0)(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@4.4.1)':
+    dependencies:
+      '@t3-oss/env-core': 0.13.11(arktype@2.2.0)(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@4.4.1)
+    optionalDependencies:
+      arktype: 2.2.0
+      typescript: 5.9.3
+      valibot: 1.4.0(typescript@5.9.3)
+      zod: 4.4.1
 
   '@types/estree@1.0.8': {}
 

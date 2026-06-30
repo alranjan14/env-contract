@@ -33,6 +33,8 @@ yarn add -D env-contract
 bun add -d env-contract
 ```
 
+> **Requires Node ≥ 22** (the current LTS line) — chosen over older floors for native APIs and a smaller shim surface.
+
 ---
 
 ## Quick Start
@@ -61,16 +63,17 @@ npx env-contract install
 
 ### 1. Supported Today (Production-Ready)
 *   **Zod**: Full support for Zod v3 and v4 schemas.
-*   **t3-env**: Full support for `@t3-oss/env-core` and `@t3-oss/env-nextjs` (including server, client, and clientPrefix presets).
+*   **t3-env** (`@t3-oss/env-core` / `@t3-oss/env-nextjs`): export your `{ server, client }` schema records alongside `createEnv` and env-contract introspects them with full server/client scope + metadata. (`createEnv`'s return value exposes only validated values, so the records are the source of truth — see the [T3 recipe](./docs/recipes.md#1-t3--t3-ossenv-core).)
 *   **Managed Blocks**: Smart updates to `.env.example` that keep human comments and custom configurations outside the `env-contract` markers.
 
 ### 2. Experimental Features (Qualifiers Applied)
 *   **Valibot & ArkType**: Basic schema introspection support. Tested on common schemas, but complex refinements or transforms may have edge cases.
+*   **Standard Schema (generic)**: Any [Standard Schema](https://standardschema.dev) validator without a dedicated loader is handled by a generic adapter. It recovers **required** keys by validating an empty object; optional keys aren't discoverable through validation alone (Standard Schema exposes validation, not introspection), so prefer a dedicated loader where one exists.
 *   **Watch Mode (`sync --watch`)**: Uses Node's native file watching. Works well in simple directory trees but might behave differently depending on OS-level file system behaviors.
 *   **Workspace Mode (`--workspace`)**: Automatically finds multiple workspace packages (via `pnpm-workspace.yaml`, npm/yarn workspace configs, or explicit package list) and runs per-package checks.
 
 ### 3. Future Roadmap
-*   **v0.3**: Standard Schema adapter integration (bringing out-of-the-box support for all compatible libraries).
+*   **v0.3**: Richer Standard Schema introspection — full type/default/description metadata for arbitrary vendors, beyond the required-key recovery shipped today.
 *   **v0.4**: Improved Monorepo optimizations and caching support.
 *   **v0.5**: VS Code Extension & Language Server Protocol (LSP) for editor diagnostics.
 
@@ -90,11 +93,48 @@ These flags apply to all commands:
 | `--cwd <path>` | Override the current working directory. |
 | `--silent` | Suppress all stdout reporter logs except errors. |
 | `--json` | Force the reporter to print structured JSON. |
+| `--debug` | Print resolved paths and timings to stderr (also enabled via `DEBUG=env-contract*`). |
 
 ### Exit Codes
+
+Exit codes are a stable part of the CLI contract (see [ADR 0004](./docs/adr/0004-exit-code-semantics.md)):
+
 -   `0`: Healthy. No drift found.
 -   `1`: Drift detected (mismatch between schema and `.env.example`, or orphaned/untracked references in code).
 -   `2`: Configuration/Runtime error (e.g., compile issues in the schema file, invalid configuration).
+
+### Machine Output (`--json`)
+
+Every command accepts `--json` and prints a single JSON object to stdout. The payload is **versioned** so downstream parsers can detect and adapt to shape changes:
+
+-   **`schemaVersion`** (number): the output schema version. It is currently `1` and is incremented only on a backward-incompatible change to the shape below.
+
+Single-project mode is a flat object (e.g. `env-contract check --json`):
+
+```json
+{
+  "schemaVersion": 1,
+  "syncDrift": false,
+  "exampleDrift": { "missingInExample": [], "extraInExample": [] },
+  "orphanedRefs": [],
+  "unusedSchemaKeys": [],
+  "dynamicRefs": [],
+  "warnings": []
+}
+```
+
+Workspace mode (`--workspace`) wraps the per-package results under `packages`:
+
+```json
+{
+  "schemaVersion": 1,
+  "packages": [
+    { "package": "packages/api", "syncDrift": false, "orphanedRefs": [], "...": "..." }
+  ]
+}
+```
+
+When a target fails to process, its object carries an `error` string instead of results, and the process exits `2`. Human status text and `--debug` diagnostics go to **stderr**, never stdout, so a `--json` stream is always clean to parse.
 
 ---
 
@@ -172,6 +212,58 @@ You can also specify this under the `"env-contract"` field in your `package.json
 
 ---
 
+## Programmatic API
+
+Embed env-contract in your own tooling (build plugins, custom CI scripts). Every export is typed, and the export surface is snapshot-guarded by a test (`tests/api-surface.test.ts`) so additions are deliberate.
+
+```typescript
+import {
+  loadSchema, // (path | { path, cwd? }) => Promise<Schema>
+  generateExample, // (schema) => string  (managed-block content; does not write)
+  scan, // ({ root, patterns?, exclude?, cwd? }) => Promise<{ references, dynamic, warnings, grouped }>
+  check, // ({ cwd?, strict?, schema? }) => Promise<{ ok, exampleDrift, orphanedRefs, unusedSchemaKeys, dynamicRefs, warnings }>
+  scanSource, // lower-level AST scan
+  diff,
+  computeKeyDrift,
+  parseEnvKeys, // core engine primitives
+  defineConfig,
+  version,
+} from "env-contract";
+
+// Introspect a schema file into normalized entries.
+const schema = await loadSchema("./src/env.ts");
+// → { entries: [{ key, type, optional, default?, description?, scope }, ...] }
+
+// Generate .env.example content (string; does not touch disk).
+const content = generateExample(schema);
+
+// Scan source for process.env / import.meta.env references.
+const { references, dynamic, warnings } = await scan({
+  root: "./src",
+  patterns: ["**/*.{ts,tsx}"],
+});
+
+// Run the full check with no process.exit and no stdout.
+const report = await check({ cwd: process.cwd() });
+if (!report.ok) {
+  console.error(report.orphanedRefs, report.exampleDrift);
+}
+```
+
+---
+
+## Security
+
+`env-contract` discovers your schema and config files by **importing** them, which **executes that code** in the current Node process — the same trust model as `eslint.config.js`, `vite.config.ts`, or Jest config files. Practical implications:
+
+-   Run `env-contract` only against repositories you trust. In CI, treat it like any other step that runs repository code — avoid pointing `check` at untrusted pull requests in a privileged context.
+-   It reads env **variable names** only (from your schema and the managed block of `.env.example`). It never reads, prints, or stores secret **values**.
+-   No telemetry, no network access, no postinstall scripts.
+
+See [SECURITY.md](../../SECURITY.md) for the full policy and how to report a vulnerability.
+
+---
+
 ## Troubleshooting: Avoiding Validation Crashes in CI/Builds
 
 Because `env-contract` dynamically imports your schema file to introspect it, any immediate validation checks that execute at runtime on module import can crash if required environment variables are missing (e.g., in a clean CI environment).
@@ -186,13 +278,19 @@ Check for a `SKIP_ENV_VALIDATION` flag in your schema loader file:
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
-export const env = createEnv({
+// Export the schema records so env-contract can introspect them — `createEnv`'s
+// return value exposes only validated values, not your schemas.
+export const envSchema = {
   server: {
     DATABASE_URL: z.string().url(),
   },
   client: {
     NEXT_PUBLIC_API_URL: z.string().url(),
   },
+};
+
+export const env = createEnv({
+  ...envSchema,
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,

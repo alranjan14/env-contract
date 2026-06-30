@@ -10,6 +10,9 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/coverage/**",
       "**/fixtures/**",
+      // Standalone reference projects with their own (uninstalled) deps; not part
+      // of this repo's TS project graph, so they're outside lint/typecheck.
+      "examples/**",
       "**/*.cjs",
       "**/*.mjs",
     ],

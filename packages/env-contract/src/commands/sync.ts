@@ -13,6 +13,7 @@ import { resolveConfig } from "../config.js";
 import type { Config } from "../config.js";
 import { toError, errorCode } from "../utils/errors.js";
 import { makeLogger, type Logger } from "../utils/logger.js";
+import { makeDebug } from "../utils/debug.js";
 import { ExitCode } from "../utils/exit-code.js";
 import { formatJsonSync } from "../reporters/json.js";
 import { reportSync } from "../reporters/pretty.js";
@@ -28,6 +29,7 @@ export interface SyncRunOptions {
   cwd?: string;
   schema?: string;
   json?: boolean;
+  debug?: boolean;
 }
 
 export async function runSync(
@@ -37,6 +39,7 @@ export async function runSync(
   const cwd = options.cwd || process.cwd();
   const isWorkspace = options.workspace;
   const logger = makeLogger({ json: options.json, silent: options.silent });
+  const dbg = makeDebug(options.debug);
 
   if (isWorkspace) {
     const packages = await findWorkspacePackages(cwd);
@@ -61,6 +64,7 @@ export async function runSync(
     const reportsToPrint: SyncReport[] = [];
 
     logger.info(pc.cyan(`Found ${packages.length} packages in workspace.`));
+    dbg.log(`sync: ${packages.length} workspace packages`);
 
     for (const pkg of packages) {
       const pkgConfig = await resolveConfig(pkg.dir);
@@ -135,7 +139,11 @@ export async function runSync(
       ? path.resolve(cwd, config.exampleFile)
       : path.resolve(cwd, ".env.example");
 
+  dbg.log(`sync: schema=${schemaPath}`);
+  dbg.log(`sync: example=${exampleFile}`);
+  const done = dbg.timer("sync: executeSync");
   const { code, report, canceled } = await executeSync(schemaPath, exampleFile, options, config);
+  done();
 
   if (options.json) {
     logger.output(formatJsonSync(report));
