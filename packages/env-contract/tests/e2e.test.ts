@@ -499,8 +499,10 @@ ANOTHER_MANUAL_VAR=456
 
     expect(status).toBe(2);
     expect(stderr).toContain("must export an object");
-    // A single clean line, never a multi-line V8 stack trace.
-    expect(stderr.trim().split("\n")).toHaveLength(1);
+    // Clean message, not a raw multi-line V8 stack trace (no "  at …" frames).
+    // Tolerates unrelated Node deprecation/experimental warnings on stderr, which
+    // surface in some CI environments (e.g. the punycode DEP) but aren't a stack.
+    expect(stderr).not.toMatch(/^\s+at\s/m);
   });
 
   it("keeps --json stdout clean while --debug writes diagnostics only to stderr", async () => {
