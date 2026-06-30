@@ -1,6 +1,6 @@
 {
   "name": "env-contract",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Keep your env schema, .env.example, and process.env references honest with each other.",
   "keywords": [
     "env",
