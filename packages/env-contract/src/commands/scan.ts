@@ -74,6 +74,8 @@ export async function runScan(
             scanSource(rootDir, scanOptions),
           ]);
 
+          // scan reports code-vs-schema drift only (orphaned refs / unused keys),
+          // not .env.example drift — pass [] for the example keys.
           const result = diff(schema, [], report.references, {
             strict: options.strict !== undefined ? options.strict : false,
             ignoreKeys: pkgConfig.ignoreKeys || [],
@@ -146,6 +148,8 @@ export async function runScan(
         `${report.dynamic.length} dynamic, ${report.warnings.length} warnings`,
     );
 
+    // scan reports code-vs-schema drift only (orphaned refs / unused keys),
+    // not .env.example drift — pass [] for the example keys.
     const result = diff(schema, [], report.references, {
       strict: options.strict !== undefined ? options.strict : false,
       ignoreKeys: config.ignoreKeys || [],

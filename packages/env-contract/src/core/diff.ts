@@ -10,37 +10,39 @@ export interface DiffReport {
   unusedSchemaKeys: string[];
 }
 
+/**
+ * Full contract diff in one call: example-file drift (schema vs a set of
+ * `.env.example` keys) plus scan-side drift (orphaned code references and, under
+ * `strict`, unused schema keys). Part of the public programmatic API.
+ *
+ * The CLI itself does not use the example-drift half here — `sync`/`check` call
+ * `computeKeyDrift` directly against the managed block and pass `[]` for
+ * `exampleKeys` — but the parameter stays so programmatic callers can get a
+ * complete diff from a single call. The example-drift rule is delegated to
+ * `computeKeyDrift` below so there is exactly one implementation of it.
+ */
 export function diff(
   schema: Schema,
   exampleKeys: string[],
   scannerRefs: Reference[],
   options: { strict?: boolean; ignoreKeys?: string[] } = {},
 ): DiffReport {
-  const schemaKeys = new Set(schema.entries.map((e) => e.key));
-  const exampleKeySet = new Set(exampleKeys);
+  const schemaKeyList = schema.entries.map((e) => e.key);
+  const schemaKeys = new Set(schemaKeyList);
   const scannedKeySet = new Set(scannerRefs.map((r) => r.key));
   const ignoredKeys = new Set(options.ignoreKeys || []);
 
+  // 1. Example drift — same rule the sync/check commands use, shared via one impl.
+  const { missing, extra } = computeKeyDrift(schemaKeyList, exampleKeys, ignoredKeys);
+
   const report: DiffReport = {
     exampleDrift: {
-      missingInExample: [],
-      extraInExample: [],
+      missingInExample: missing,
+      extraInExample: extra,
     },
     orphanedRefs: [],
     unusedSchemaKeys: [],
   };
-
-  // 1. Example Drift
-  for (const key of schemaKeys) {
-    if (!exampleKeySet.has(key) && !ignoredKeys.has(key)) {
-      report.exampleDrift.missingInExample.push(key);
-    }
-  }
-  for (const key of exampleKeys) {
-    if (!schemaKeys.has(key) && !ignoredKeys.has(key)) {
-      report.exampleDrift.extraInExample.push(key);
-    }
-  }
 
   // 2. Orphaned References
   for (const ref of scannerRefs) {

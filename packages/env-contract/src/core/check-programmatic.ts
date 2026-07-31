@@ -72,6 +72,9 @@ export async function check(
 
   const report = await scanSource(rootDir, scanOptions);
 
+  // Example drift is already computed above via computeKeyDrift (against the
+  // managed block), so pass [] here — diff() is used only for the scan-side
+  // checks: orphaned refs and, under --strict, unused schema keys.
   const diffResult = diff(schema, [], report.references, {
     strict: options.strict !== undefined ? options.strict : false,
     ignoreKeys: config.ignoreKeys || [],
