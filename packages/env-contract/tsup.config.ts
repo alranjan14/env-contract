@@ -8,15 +8,34 @@ const pkg = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf
   version: string;
 };
 
-export default defineConfig({
-  entry: ["src/index.ts", "src/cli.ts"],
-  format: ["esm", "cjs"],
-  dts: true,
-  clean: true,
+const shared = {
   splitting: false,
   sourcemap: true,
   target: "node22",
   minify: false,
   shims: true,
   define: { __VERSION__: JSON.stringify(pkg.version) },
-});
+};
+
+export default defineConfig([
+  {
+    // Library entry: dual ESM + CJS with type declarations (see package.json
+    // "exports").
+    ...shared,
+    entry: ["src/index.ts"],
+    format: ["esm", "cjs"],
+    dts: true,
+    clean: true,
+  },
+  {
+    // CLI bin: ESM-only. It runs as `dist/cli.js` (the "bin" target) and is never
+    // `require()`d, and its cac dependency is ESM-only — so a CJS build would be
+    // both dead weight and unloadable. `clean: false` preserves the library build
+    // above (this config runs after it).
+    ...shared,
+    entry: ["src/cli.ts"],
+    format: ["esm"],
+    dts: false,
+    clean: false,
+  },
+]);
