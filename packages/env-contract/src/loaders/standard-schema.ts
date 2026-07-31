@@ -18,8 +18,7 @@ interface StandardIssue {
 }
 
 type StandardResult =
-  | { readonly value: unknown }
-  | { readonly issues: ReadonlyArray<StandardIssue> };
+  { readonly value: unknown } | { readonly issues: ReadonlyArray<StandardIssue> };
 
 interface StandardSchemaV1 {
   readonly "~standard": {

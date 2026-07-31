@@ -18,14 +18,15 @@ export default defineConfig({
       // cli.ts is the bin entrypoint, exercised by the e2e suite which spawns the
       // built CLI in a child process — it can't be instrumented in-process.
       exclude: ["src/cli.ts"],
-      // Floors set a few points below current (stmts/lines ~85, funcs ~93,
-      // branches ~73) so a real regression trips the gate without churn on small
-      // changes. Ratchet upward as coverage improves.
+      // Floors a few points below current under the coverage-v8 v4 measurement
+      // (stmts ~80, lines ~82, funcs ~91, branches ~68). v4's v8 remapping reports
+      // a bit lower than v1 for identical tests, so these were re-baselined with
+      // the vitest 4 upgrade — not a coverage regression. Ratchet up as it grows.
       thresholds: {
-        lines: 82,
-        statements: 82,
-        functions: 90,
-        branches: 70,
+        lines: 80,
+        statements: 78,
+        functions: 88,
+        branches: 66,
       },
     },
   },
