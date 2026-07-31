@@ -1,0 +1,74 @@
+name: Examples
+
+# Runs `env-contract check` inside each runnable example in examples/ against the
+# LOCAL build from this commit (not the published package), so the examples can't
+# silently rot as the CLI evolves. Kept off the main CI matrix on purpose: the
+# examples install heavy framework deps (next / react / turbo). Path filters keep
+# it from running on unrelated changes; workflow_dispatch allows manual runs.
+on:
+  push:
+    branches: [main, master, dev]
+    paths:
+      - "examples/**"
+      - "packages/env-contract/**"
+      - ".github/workflows/examples.yml"
+  pull_request:
+    branches: [main, master, dev]
+    paths:
+      - "examples/**"
+      - "packages/env-contract/**"
+      - ".github/workflows/examples.yml"
+  workflow_dispatch:
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Build the package under test and pack it into a tarball, so the examples
+      # install the code from this commit instead of whatever is on npm. Also
+      # expose the built CLI path for the turborepo step below.
+      - name: Build & pack env-contract
+        id: pack
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter env-contract run build
+          ( cd packages/env-contract && pnpm pack --pack-destination "$RUNNER_TEMP" )
+          echo "tarball=$(ls "$RUNNER_TEMP"/env-contract-*.tgz | head -n1)" >> "$GITHUB_OUTPUT"
+          echo "cli=$GITHUB_WORKSPACE/packages/env-contract/dist/cli.js" >> "$GITHUB_OUTPUT"
+
+      # express-api and nextjs-app ship an env-contract.config.ts that imports the
+      # package (defineConfig), so env-contract must resolve inside the example.
+      # Install the example's deps, overwrite env-contract with the freshly built
+      # tarball, then run the example's own `env:check` script against it.
+      - name: Check express-api example
+        working-directory: examples/express-api
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --no-save "${{ steps.pack.outputs.tarball }}"
+          npm run env:check
+
+      - name: Check nextjs-app example
+        working-directory: examples/nextjs-app
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --no-save "${{ steps.pack.outputs.tarball }}"
+          npm run env:check
+
+      # turborepo's packages auto-detect src/env.ts and nothing there imports
+      # env-contract, so only zod needs installing. Run the built CLI directly:
+      # this avoids substituting env-contract via pnpm-workspace `overrides`, whose
+      # location moved between pnpm 9 (package.json) and pnpm 10 (pnpm-workspace.yaml).
+      - name: Check turborepo example
+        working-directory: examples/turborepo
+        run: |
+          pnpm install --no-frozen-lockfile
+          node "${{ steps.pack.outputs.cli }}" check --workspace
