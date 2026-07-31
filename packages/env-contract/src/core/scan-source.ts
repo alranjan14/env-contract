@@ -1,10 +1,9 @@
-// oxc@0.31 serializes its AST to a JSON string, so we parse it and walk a typed
-// structural view (AstNode) of the nodes we inspect. Removing the JSON round-trip
-// would require upgrading oxc-parser, whose node names change across versions;
-// the typing here makes the walk fully type-safe regardless.
+// oxc-parser returns an ESTree-compatible AST object (`result.program`). We walk
+// a typed structural view (AstNode) of only the nodes we inspect, so the walk
+// stays type-safe without depending on oxc's full generated types.
 import fs from "node:fs/promises";
 import path from "node:path";
-import oxc from "oxc-parser";
+import { parseSync } from "oxc-parser";
 import { toError } from "../utils/errors.js";
 
 export interface Reference {
@@ -28,9 +27,10 @@ export interface ScanReport {
 }
 
 /**
- * Structural view of the (oxc/ESTree-ish) AST nodes the scanner reads. Because
- * oxc hands us the AST as JSON, this models only the fields we inspect; any
- * field not relevant to env detection is simply absent.
+ * Structural view of the ESTree-compatible AST nodes the scanner reads. Models
+ * only the fields we inspect; any field not relevant to env detection is simply
+ * absent. `computed` distinguishes `a.b` (false) from `a["b"]` (true) on a
+ * MemberExpression.
  */
 interface AstNode {
   type: string;
@@ -38,6 +38,7 @@ interface AstNode {
   end: number;
   name?: string;
   value?: unknown;
+  computed?: boolean;
   callee?: AstNode;
   object?: AstNode;
   property?: AstNode;
@@ -204,18 +205,20 @@ async function scanFile(filePath: string, baseCwd: string): Promise<ScanReport> 
   const report: ScanReport = { references: [], dynamic: [], warnings: [] };
   try {
     const code = await fs.readFile(filePath, "utf-8");
-    const result = oxc.parseSync(code, { sourceFilename: filePath });
+    // oxc infers the language (ts/tsx/js/jsx) from the filename extension.
+    const result = parseSync(filePath, code);
 
     if (result.errors && result.errors.length > 0) {
       for (const err of result.errors) {
         report.warnings.push({
           file: relPath,
-          message: err,
+          message: err.message,
         });
       }
     }
 
-    const program = JSON.parse(result.program) as AstNode;
+    // `program` is already an object in current oxc-parser — no JSON round-trip.
+    const program = result.program as unknown as AstNode;
 
     // To get line/col, we need a simple line offset map
     const lineStarts: number[] = [0];
@@ -230,7 +233,8 @@ async function scanFile(filePath: string, baseCwd: string): Promise<ScanReport> 
         const calleeObject = callee?.object;
         const calleeProperty = callee?.property;
         if (
-          callee?.type === "StaticMemberExpression" &&
+          callee?.type === "MemberExpression" &&
+          !callee.computed &&
           calleeObject?.type === "Identifier" &&
           calleeObject.name === "Object" &&
           calleeProperty?.type === "Identifier" &&
@@ -250,39 +254,35 @@ async function scanFile(filePath: string, baseCwd: string): Promise<ScanReport> 
         }
       }
 
-      // 1. process.env.FOO / process.env?.FOO
-      if (node.type === "StaticMemberExpression") {
+      // process.env.FOO / process.env["FOO"] (and their optional-chained forms).
+      // ESTree models both as a MemberExpression; `computed` tells them apart.
+      if (node.type === "MemberExpression") {
         const obj = node.object;
-        const key = node.property?.name;
-        if (key !== undefined && isProcessEnv(obj)) {
+        const onProcess = isProcessEnv(obj);
+        const kind: Reference["kind"] | null = onProcess
+          ? "process.env"
+          : isImportMetaEnv(obj)
+            ? "import.meta.env"
+            : null;
+        if (kind !== null) {
           const { line, column } = getPosition(node.start, lineStarts);
-          report.references.push({ key, file: relPath, line, column, kind: "process.env" });
-          return;
-        }
-        if (key !== undefined && isImportMetaEnv(obj)) {
-          const { line, column } = getPosition(node.start, lineStarts);
-          report.references.push({ key, file: relPath, line, column, kind: "import.meta.env" });
-          return;
-        }
-      }
-
-      // 2. process.env["FOO"] / process.env?.[ "FOO" ]
-      if (node.type === "ComputedMemberExpression") {
-        const obj = node.object;
-        if (isProcessEnv(obj) || isImportMetaEnv(obj)) {
-          const { line, column } = getPosition(node.start, lineStarts);
-          const expr = node.expression;
-
-          if (expr?.type === "StringLiteral" && typeof expr.value === "string") {
+          if (!node.computed) {
+            // Static access: `.FOO` — property is an Identifier.
+            const key = node.property?.name;
+            if (key !== undefined) {
+              report.references.push({ key, file: relPath, line, column, kind });
+            }
+          } else if (node.property?.type === "Literal" && typeof node.property.value === "string") {
+            // Computed access with a string literal: `["FOO"]` — a static key.
             report.references.push({
-              key: expr.value,
+              key: node.property.value,
               file: relPath,
               line,
               column,
-              kind: isProcessEnv(obj) ? "process.env" : "import.meta.env",
+              kind,
             });
           } else {
-            // Dynamic access
+            // Computed access with a variable/expression — dynamic.
             report.dynamic.push({
               file: relPath,
               line,
@@ -303,7 +303,8 @@ async function scanFile(filePath: string, baseCwd: string): Promise<ScanReport> 
             for (const prop of id.properties) {
               const propKey = prop.key;
               if (
-                prop.type === "BindingProperty" &&
+                prop.type === "Property" &&
+                !prop.computed &&
                 propKey?.type === "Identifier" &&
                 propKey.name !== undefined
               ) {
@@ -354,7 +355,7 @@ function isProcessEnv(node: AstNode | undefined | null): boolean {
     return isProcessEnv(node.expression);
   }
 
-  if (node.type !== "StaticMemberExpression") return false;
+  if (node.type !== "MemberExpression" || node.computed) return false;
   const { object, property } = node;
   if (!object || !property) return false;
   return (
@@ -373,7 +374,7 @@ function isImportMetaEnv(node: AstNode | undefined | null): boolean {
     return isImportMetaEnv(node.expression);
   }
 
-  if (node.type !== "StaticMemberExpression") return false;
+  if (node.type !== "MemberExpression" || node.computed) return false;
   const { object, property } = node;
   if (!object || !property) return false;
 
