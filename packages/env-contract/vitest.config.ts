@@ -18,13 +18,14 @@ export default defineConfig({
       // cli.ts is the bin entrypoint, exercised by the e2e suite which spawns the
       // built CLI in a child process — it can't be instrumented in-process.
       exclude: ["src/cli.ts"],
-      // Floors set below current (lines ~83, funcs ~90, branches ~70) so a real
-      // regression trips the gate without churn on small changes. Raise over time.
+      // Floors set a few points below current (stmts/lines ~85, funcs ~93,
+      // branches ~73) so a real regression trips the gate without churn on small
+      // changes. Ratchet upward as coverage improves.
       thresholds: {
-        lines: 80,
-        statements: 80,
-        functions: 85,
-        branches: 65,
+        lines: 82,
+        statements: 82,
+        functions: 90,
+        branches: 70,
       },
     },
   },
