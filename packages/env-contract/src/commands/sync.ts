@@ -84,6 +84,7 @@ export async function runSync(
         schemaPath,
         exampleFile,
         options,
+        logger,
         pkgConfig,
         pkg.dir,
       );
@@ -142,7 +143,13 @@ export async function runSync(
   dbg.log(`sync: schema=${schemaPath}`);
   dbg.log(`sync: example=${exampleFile}`);
   const done = dbg.timer("sync: executeSync");
-  const { code, report, canceled } = await executeSync(schemaPath, exampleFile, options, config);
+  const { code, report, canceled } = await executeSync(
+    schemaPath,
+    exampleFile,
+    options,
+    logger,
+    config,
+  );
   done();
 
   if (options.json) {
@@ -185,6 +192,7 @@ async function watchSchema(
                 schemaPath,
                 exampleFile,
                 options,
+                logger,
                 config,
                 pkgDir,
               );
@@ -211,6 +219,7 @@ async function executeSync(
   schemaPath: string,
   exampleFile: string,
   options: SyncRunOptions,
+  logger: Logger,
   config: Config = {},
   pkgDir?: string,
 ): Promise<{ code: ExitCode; report: SyncReport; canceled?: boolean }> {
@@ -266,11 +275,11 @@ async function executeSync(
     }
 
     if (!options.yes && !options.json && !options.silent) {
-      console.log(pc.yellow(`\nDrift detected in ${exampleFile}.`));
-      showDiff(existingContent, updatedContent);
+      logger.info(pc.yellow(`\nDrift detected in ${exampleFile}.`));
+      showDiff(existingContent, updatedContent, logger);
       const accepted = await confirm(pc.cyan(`Apply these changes to ${exampleFile}? (y/N)`));
       if (!accepted) {
-        console.log(pc.gray("Canceled by user."));
+        logger.info(pc.gray("Canceled by user."));
         return { code: ExitCode.Ok, report, canceled: true };
       }
     }

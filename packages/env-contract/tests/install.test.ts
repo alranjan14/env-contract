@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -184,6 +184,37 @@ pre-commit:
       const content = await fs.readFile(path.join(caseDir, "lefthook.yml"), "utf-8");
       const matches = content.match(/env-contract/g);
       expect(matches).toHaveLength(2); // commands: env-contract, run: npx env-contract check
+    });
+
+    it("suppresses stdout under --silent and --json while still writing the hook", async () => {
+      process.env.npm_config_user_agent = "pnpm/9.0.6";
+
+      const run = async (name: string, opts: { silent?: boolean; json?: boolean }) => {
+        const dir = path.join(tempDir, name);
+        await fs.mkdir(dir, { recursive: true });
+        await fs.writeFile(
+          path.join(dir, "package.json"),
+          JSON.stringify({ devDependencies: { husky: "^9.0.0" } }),
+        );
+
+        const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+        try {
+          const { code } = await runInstall({ yes: true, cwd: dir, ...opts });
+          expect(code).toBe(0);
+          // No human chatter reaches stdout (in --json this would otherwise
+          // corrupt machine output; in --silent it must stay quiet).
+          expect(logSpy).not.toHaveBeenCalled();
+        } finally {
+          logSpy.mockRestore();
+        }
+
+        // Behavior is unchanged — the hook is still written.
+        const hook = await fs.readFile(path.join(dir, ".husky/pre-commit"), "utf-8");
+        expect(hook).toContain("pnpm exec env-contract check");
+      };
+
+      await run("quiet-silent", { silent: true });
+      await run("quiet-json", { json: true });
     });
   });
 });

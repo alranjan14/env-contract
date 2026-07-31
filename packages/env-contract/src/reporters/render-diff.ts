@@ -1,15 +1,21 @@
 import pc from "picocolors";
+import { consoleLogger, type Logger } from "../utils/logger.js";
 
 // Terminal line-diff renderer for the interactive `sync` preview. (Distinct from
-// core/diff.ts, which computes the env-contract key drift.)
-export function showDiff(oldContent: string, newContent: string): void {
+// core/diff.ts, which computes the env-contract key drift.) Output goes through a
+// Logger so the caller controls the sink; defaults to the console for direct use.
+export function showDiff(
+  oldContent: string,
+  newContent: string,
+  logger: Logger = consoleLogger,
+): void {
   const oldLines = oldContent.split("\n");
   const newLines = newContent.split("\n");
 
   let i = 0;
   let j = 0;
 
-  console.log("");
+  logger.info("");
   while (i < oldLines.length || j < newLines.length) {
     if (i < oldLines.length && j < newLines.length && oldLines[i] === newLines[j]) {
       i++;
@@ -41,13 +47,13 @@ export function showDiff(oldContent: string, newContent: string): void {
       }
 
       if (matchI !== -1 && matchJ !== -1) {
-        while (i < matchI) console.log(pc.red(`- ${oldLines[i++]}`));
-        while (j < matchJ) console.log(pc.green(`+ ${newLines[j++]}`));
+        while (i < matchI) logger.info(pc.red(`- ${oldLines[i++]}`));
+        while (j < matchJ) logger.info(pc.green(`+ ${newLines[j++]}`));
       } else {
-        if (i < oldLines.length) console.log(pc.red(`- ${oldLines[i++]}`));
-        if (j < newLines.length) console.log(pc.green(`+ ${newLines[j++]}`));
+        if (i < oldLines.length) logger.info(pc.red(`- ${oldLines[i++]}`));
+        if (j < newLines.length) logger.info(pc.green(`+ ${newLines[j++]}`));
       }
     }
   }
-  console.log("");
+  logger.info("");
 }
