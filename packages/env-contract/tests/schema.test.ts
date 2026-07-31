@@ -222,5 +222,30 @@ describe("Schema Auto-detection & Loading Reliability", () => {
         scope: "server",
       });
     });
+
+    it("detects the `env` export convention through the prioritized scan alone", async () => {
+      // Guards the removal of the old dedicated `mod.env` fallback: a schema
+      // exported only as `env` must still be found, because "env" is one of the
+      // prioritized keys the main loop already tries.
+      const caseDir = path.join(tempDir, "env-convention");
+      await fs.mkdir(caseDir, { recursive: true });
+
+      const fileContent = `
+        export const env = {
+          _def: { typeName: "ZodObject" },
+          shape: {
+            PORT: { _def: { typeName: "ZodString" } }
+          },
+          parse: () => {},
+          safeParse: () => {}
+        };
+      `;
+      const schemaFile = path.join(caseDir, "env.ts");
+      await fs.writeFile(schemaFile, fileContent, "utf-8");
+
+      const schema = await loadSchema(schemaFile);
+      expect(schema.entries).toHaveLength(1);
+      expect(schema.entries[0]?.key).toBe("PORT");
+    });
   });
 });

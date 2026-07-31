@@ -51,21 +51,15 @@ export async function loadSchema(
     const otherKeys = keys.filter((k) => !prioritized.includes(k));
     const sortedKeys = [...prioritized.filter((k) => keys.includes(k)), ...otherKeys];
 
-    // 1. Try to find an explicit loader match in prioritized exports
+    // Try each export (prioritized names first, then the rest) against every
+    // loader. This already covers the `env` convention on its own: "env" is in
+    // the prioritized list whenever it is exported, so a separate `mod.env`
+    // fallback would only re-check what this loop has already tried.
     for (const key of sortedKeys) {
       const exported = mod[key];
       for (const loader of registeredLoaders) {
         if (loader.matches(exported)) {
           return loader.introspect(exported);
-        }
-      }
-    }
-
-    // 2. Fallback: search for common naming conventions if no structural match found in exports list
-    if (mod.env) {
-      for (const loader of registeredLoaders) {
-        if (loader.matches(mod.env)) {
-          return loader.introspect(mod.env);
         }
       }
     }
