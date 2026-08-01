@@ -63,7 +63,7 @@
   "dependencies": {
     "cac": "^6.7.14",
     "jiti": "^2.1.0",
-    "oxc-parser": "^0.31.0",
+    "oxc-parser": "^0.142.0",
     "picocolors": "^1.0.0"
   },
   "peerDependencies": {
